@@ -23,8 +23,11 @@
 package influxdb
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
+	"github.com/apex/log"
 	"github.com/bullettime/lora-mapper/database"
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/influxdata/influxdb/client/v2"
@@ -98,6 +101,97 @@ func (i *influxdb) Write(metrics []model.Metric) error {
 	}
 
 	return nil
+}
+
+func (i *influxdb) Query(measurement string, notOlderThan string) ([]model.Metric, error) {
+	var metrics []model.Metric
+
+	command := fmt.Sprintf("select * from %s where time >= now() - %s group by *", measurement, notOlderThan)
+	q := client.NewQuery(command, i.options.Database, "")
+
+	response, err := i.client.Query(q)
+	if err != nil {
+		return nil, err
+	}
+	if response.Error() != nil {
+		return nil, response.Error()
+	}
+
+	for _, result := range response.Results {
+		for _, serie := range result.Series {
+			log.WithFields(log.Fields{
+				"name":    serie.Name,
+				"tags":    serie.Tags,
+				"values":  serie.Values[0],
+				"columns": serie.Columns,
+			}).Debug("row")
+
+			t, err := time.Parse(time.RFC3339, serie.Values[0][0].(string))
+			if err != nil {
+				log.WithError(err).Warnf("parsing time from serie: %v", serie)
+				continue
+			}
+
+			fields := make(map[string]interface{})
+
+			for i := 1; i < len(serie.Columns); i++ {
+				fields[serie.Columns[i]] = serie.Values[0][i]
+			}
+
+			metric, err := model.NewMetric(serie.Name, serie.Tags, fields, t)
+			if err != nil {
+				log.WithError(err).Warnf("could not create metric from serie: %v", serie)
+				continue
+			}
+
+			metrics = append(metrics, metric)
+		}
+	}
+
+	return metrics, nil
+}
+
+func (i *influxdb) HasMetric(metric model.Metric, t time.Time) bool {
+	var command string
+	var tags []string
+
+	for k, v := range metric.Tags() {
+		tags = append(tags, fmt.Sprintf("%s = '%s'", k, v))
+	}
+
+	if t.IsZero() {
+		command = fmt.Sprintf("select * from %s where %s group by *", metric.Name(), strings.Join(tags, " and "))
+	} else {
+		command = fmt.Sprintf("select * from %s where time >= '%s' and %s group by *", metric.Name(), t.Format(time.RFC3339), strings.Join(tags, " and "))
+	}
+	//log.WithField("command", command).Debug("query")
+
+	q := client.NewQuery(command, i.options.Database, "")
+
+	response, err := i.client.Query(q)
+	if err != nil {
+		return false
+	}
+	if response.Error() != nil {
+		return false
+	}
+
+	//for _, result := range response.Results {
+	//	for _, serie := range result.Series {
+	//		log.WithFields(log.Fields{
+	//			"name":    serie.Name,
+	//			"tags":    serie.Tags,
+	//			"values":  serie.Values[0],
+	//			"columns": serie.Columns,
+	//		}).Debug("row")
+	//	}
+	//}
+
+	if len(response.Results) > 0 && len(response.Results[0].Series) > 0 {
+		return true
+	}
+
+	return false
 }
 
 func (i *influxdb) Close() error {

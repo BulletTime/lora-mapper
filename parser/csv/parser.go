@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apex/log"
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/bullettime/lora-mapper/parser"
 	"github.com/pkg/errors"
@@ -68,24 +69,16 @@ func New() parser.Parser {
 	return &p
 }
 
-func isValidHeader(header []string) bool {
-	validHeader := strings.Split(CSVHeader, ";")
-
-	if len(header) != len(validHeader) {
-		return false
-	}
-
-	for i, v := range header {
-		if strings.Compare(v, validHeader[i]) != 0 {
-			return false
-		}
-	}
-
-	return true
+func truncate(some float64) float64 {
+	return float64(int(some*10000)) / 10000
 }
 
 func (p *csvParser) getMetricsFromRecord(record []string) ([]model.Metric, error) {
 	var metrics []model.Metric
+
+	if strings.Join(record, ";") == CSVHeader {
+		return metrics, nil
+	}
 
 	tags := make(map[string]string, len(p.DefaultTags))
 	for k, v := range p.DefaultTags {
@@ -102,8 +95,8 @@ func (p *csvParser) getMetricsFromRecord(record []string) ([]model.Metric, error
 		return nil, err
 	}
 
-	tags["latitude"] = strconv.FormatFloat(lat/10000000, 'f', 4, 64)
-	tags["longitude"] = strconv.FormatFloat(lon/10000000, 'f', 4, 64)
+	tags["latitude"] = strconv.FormatFloat(truncate(lat/10000000), 'f', -1, 64)
+	tags["longitude"] = strconv.FormatFloat(truncate(lon/10000000), 'f', -1, 64)
 	tags["power"] = record[2]
 
 	fields := map[string]interface{}{
@@ -117,14 +110,14 @@ func (p *csvParser) getMetricsFromRecord(record []string) ([]model.Metric, error
 		return nil, err
 	}
 
-	if int8(SF) == 0 {
-		metric, err := model.NewMetric(p.MetricName, tags, fields, time.Time{})
-		if err != nil {
-			return nil, errors.Wrap(err, "[CSVParser] error creating metric")
-		}
-
-		metrics = append(metrics, metric)
-	}
+	//if int8(SF) == 0 {
+	//	metric, err := model.NewMetric(p.MetricName, tags, fields, time.Time{})
+	//	if err != nil {
+	//		return nil, errors.Wrap(err, "[CSVParser] error creating metric")
+	//	}
+	//
+	//	metrics = append(metrics, metric)
+	//}
 
 	if (int8(SF) & SF7) != 0 {
 		tags7 := make(map[string]string, len(tags))
@@ -232,27 +225,20 @@ func (p *csvParser) Parse(buf []byte) ([]model.Metric, error) {
 	r.Comma = ';'
 	r.FieldsPerRecord = CSVFields
 
-	header, err := r.Read()
-	if err != nil {
-		return nil, err
-	}
-
-	if !isValidHeader(header) {
-		return nil, ErrHeader
-	}
-
 	for {
 		record, err := r.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return nil, err
+			log.WithError(err).Warn("[CSVParser] read error")
+			continue
 		}
 
 		m, err := p.getMetricsFromRecord(record)
 		if err != nil {
-			return nil, err
+			log.WithError(err).Warn("[CSVParser] parse metrics error")
+			continue
 		}
 
 		for _, metric := range m {

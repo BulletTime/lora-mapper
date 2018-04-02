@@ -23,11 +23,15 @@
 package database
 
 import (
+	"time"
+
 	"github.com/bullettime/lora-mapper/model"
 )
 
 type Database interface {
 	Connect() error
 	Write([]model.Metric) error
+	Query(string, string) ([]model.Metric, error)
+	HasMetric(model.Metric, time.Time) bool
 	Close() error
 }

@@ -23,7 +23,6 @@
 package csv
 
 import (
-	"encoding/csv"
 	"testing"
 )
 
@@ -143,8 +142,8 @@ func TestCsvParser_Parse(t *testing.T) {
 func TestCsvParser_Parse2(t *testing.T) {
 	p := New()
 
-	_, err := p.Parse([]byte(csvData2))
-	if err == nil {
-		t.Fatalf("expecting error: %s", csv.ErrFieldCount)
+	metrics, _ := p.Parse([]byte(csvData2))
+	if len(metrics) != 0 {
+		t.Fatal("expected 0 metrics because of parsing errors")
 	}
 }

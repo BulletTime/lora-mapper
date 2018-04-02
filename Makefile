@@ -1,5 +1,5 @@
 .PHONY: default all macos linux windows build clean
-VERSION := 0.2.1
+VERSION := 0.1.1
 COMMIT := $(shell git describe --always)
 GOOS ?= darwin
 GOARCH ?= amd64
@@ -31,4 +31,4 @@ build:
 clean:
 	echo "[===] Cleaning up workspace [===]"
 	rm -rf build
-	rm -rf lora-mqtt.log
+	rm -rf $(BUILD_NAME).log
