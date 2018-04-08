@@ -23,13 +23,17 @@
 package model
 
 import (
-	"github.com/paulmach/go.geojson"
 	"fmt"
+	"github.com/bullettime/lora-mapper/database"
+	"github.com/paulmach/go.geojson"
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 type gjson struct {
-	callbackName string
+	db                database.Database
+	callbackName      string
+	measurementName   string
 	featureCollection *geojson.FeatureCollection
 }
 
@@ -40,11 +44,38 @@ type GeoJSON interface {
 	GetGeoJSONFromGatewayAndSF(string, string) (string, error)
 }
 
-func NewGeoJSON(callbackName string) GeoJSON {
+func NewGeoJSON(db database.Database, measurementName string, callbackName string) GeoJSON {
 	return &gjson{
-		callbackName: callbackName,
+		db:                db,
+		callbackName:      callbackName,
+		measurementName:   measurementName,
 		featureCollection: geojson.NewFeatureCollection(),
 	}
+}
+
+func (g *gjson) addPoints(metrics []Metric) error {
+	for _, metric := range metrics {
+		if !metric.HasTag("latitude") || !metric.HasTag("longitude") || !metric.HasTag("rssi") {
+			return errors.New("invalid metric")
+		}
+
+		lat, err := strconv.ParseFloat(metric.Tags()["latitude"], 64)
+		if err != nil {
+			return errors.New("invalid latitude")
+		}
+		lon, err := strconv.ParseFloat(metric.Tags()["longitude"], 64)
+		if err != nil {
+			return errors.New("invalid longitude")
+		}
+		rssi := metric.Fields()["rssi"]
+
+		feature := geojson.NewPointFeature([]float64{lat, lon})
+		feature.SetProperty("rssi", rssi)
+
+		g.featureCollection.AddFeature(feature)
+	}
+
+	return nil
 }
 
 func (g *gjson) wrapCallbackFunction() (string, error) {
@@ -57,17 +88,59 @@ func (g *gjson) wrapCallbackFunction() (string, error) {
 }
 
 func (g *gjson) GetGeoJSON() (string, error) {
-	return "", nil
+	metrics, err := g.db.QueryMeasurement(g.measurementName)
+	if err != nil {
+		return "", err
+	}
+
+	if err := g.addPoints(metrics); err != nil {
+		return "", err
+	}
+
+	return g.wrapCallbackFunction()
 }
 
 func (g *gjson) GetGeoJSONFromSF(sf string) (string, error) {
-	return "", nil
+	filter := fmt.Sprintf("data_rate = %s", sf)
+
+	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
+	if err != nil {
+		return "", err
+	}
+
+	if err := g.addPoints(metrics); err != nil {
+		return "", err
+	}
+
+	return g.wrapCallbackFunction()
 }
 
 func (g *gjson) GetGeoJSONFromGateway(gw string) (string, error) {
-	return "", nil
+	filter := fmt.Sprintf("gateway_id = %s", gw)
+
+	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
+	if err != nil {
+		return "", err
+	}
+
+	if err := g.addPoints(metrics); err != nil {
+		return "", err
+	}
+
+	return g.wrapCallbackFunction()
 }
 
 func (g *gjson) GetGeoJSONFromGatewayAndSF(gw string, sf string) (string, error) {
-	return "", nil
+	filter := fmt.Sprintf("gateway_id = %s and data_rate = %s ", gw, sf)
+
+	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
+	if err != nil {
+		return "", err
+	}
+
+	if err := g.addPoints(metrics); err != nil {
+		return "", err
+	}
+
+	return g.wrapCallbackFunction()
 }

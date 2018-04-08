@@ -151,12 +151,22 @@ func (i *influxdb) query(command string) ([]model.Metric, error) {
 }
 
 func (i *influxdb) QueryMeasurement(measurement string) ([]model.Metric, error) {
-	command := fmt.Sprintf("select * from %s where group by *", measurement)
+	command := fmt.Sprintf("select * from %s group by *", measurement)
+	return i.query(command)
+}
+
+func (i *influxdb) QueryMeasurementWithFilter(measurement string, filter string) ([]model.Metric, error) {
+	command := fmt.Sprintf("select * from %s where %s group by *", measurement, filter)
 	return i.query(command)
 }
 
 func (i *influxdb) QueryMeasurementWithMaxAge(measurement string, notOlderThan string) ([]model.Metric, error) {
 	command := fmt.Sprintf("select * from %s where time >= now() - %s group by *", measurement, notOlderThan)
+	return i.query(command)
+}
+
+func (i *influxdb) QueryMeasurementWithMaxAgeAndFilter(measurement string, notOlderThan string, filter string) ([]model.Metric, error) {
+	command := fmt.Sprintf("select * from %s where time >= now() - %s and %s group by *", measurement, notOlderThan, filter)
 	return i.query(command)
 }
 

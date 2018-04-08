@@ -32,7 +32,9 @@ type Database interface {
 	Connect() error
 	Write([]model.Metric) error
 	QueryMeasurement(string) ([]model.Metric, error)
+	QueryMeasurementWithFilter(string, string) ([]model.Metric, error)
 	QueryMeasurementWithMaxAge(string, string) ([]model.Metric, error)
+	QueryMeasurementWithMaxAgeAndFilter(string, string, string) ([]model.Metric, error)
 	HasMetric(model.Metric, time.Time) bool
 	Close() error
 }
