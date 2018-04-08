@@ -103,13 +103,12 @@ func (i *influxdb) Write(metrics []model.Metric) error {
 	return nil
 }
 
-func (i *influxdb) Query(measurement string, notOlderThan string) ([]model.Metric, error) {
+func (i *influxdb) query(command string) ([]model.Metric, error) {
 	var metrics []model.Metric
 
-	command := fmt.Sprintf("select * from %s where time >= now() - %s group by *", measurement, notOlderThan)
-	q := client.NewQuery(command, i.options.Database, "")
+	query := client.NewQuery(command, i.options.Database, "")
 
-	response, err := i.client.Query(q)
+	response, err := i.client.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -124,11 +123,11 @@ func (i *influxdb) Query(measurement string, notOlderThan string) ([]model.Metri
 				"tags":    serie.Tags,
 				"values":  serie.Values[0],
 				"columns": serie.Columns,
-			}).Debug("row")
+			}).Debugf("[Influxdb] query: %s", command)
 
 			t, err := time.Parse(time.RFC3339, serie.Values[0][0].(string))
 			if err != nil {
-				log.WithError(err).Warnf("parsing time from serie: %v", serie)
+				log.WithError(err).Warnf("[Influxdb] parsing time from serie: %v", serie)
 				continue
 			}
 
@@ -140,7 +139,7 @@ func (i *influxdb) Query(measurement string, notOlderThan string) ([]model.Metri
 
 			metric, err := model.NewMetric(serie.Name, serie.Tags, fields, t)
 			if err != nil {
-				log.WithError(err).Warnf("could not create metric from serie: %v", serie)
+				log.WithError(err).Warnf("[Influxdb] could not create metric from serie: %v", serie)
 				continue
 			}
 
@@ -149,6 +148,16 @@ func (i *influxdb) Query(measurement string, notOlderThan string) ([]model.Metri
 	}
 
 	return metrics, nil
+}
+
+func (i *influxdb) QueryMeasurement(measurement string) ([]model.Metric, error) {
+	command := fmt.Sprintf("select * from %s where group by *", measurement)
+	return i.query(command)
+}
+
+func (i *influxdb) QueryMeasurementWithMaxAge(measurement string, notOlderThan string) ([]model.Metric, error) {
+	command := fmt.Sprintf("select * from %s where time >= now() - %s group by *", measurement, notOlderThan)
+	return i.query(command)
 }
 
 func (i *influxdb) HasMetric(metric model.Metric, t time.Time) bool {
@@ -164,7 +173,6 @@ func (i *influxdb) HasMetric(metric model.Metric, t time.Time) bool {
 	} else {
 		command = fmt.Sprintf("select * from %s where time >= '%s' and %s group by *", metric.Name(), t.Format(time.RFC3339), strings.Join(tags, " and "))
 	}
-	//log.WithField("command", command).Debug("query")
 
 	q := client.NewQuery(command, i.options.Database, "")
 
@@ -175,17 +183,6 @@ func (i *influxdb) HasMetric(metric model.Metric, t time.Time) bool {
 	if response.Error() != nil {
 		return false
 	}
-
-	//for _, result := range response.Results {
-	//	for _, serie := range result.Series {
-	//		log.WithFields(log.Fields{
-	//			"name":    serie.Name,
-	//			"tags":    serie.Tags,
-	//			"values":  serie.Values[0],
-	//			"columns": serie.Columns,
-	//		}).Debug("row")
-	//	}
-	//}
 
 	if len(response.Results) > 0 && len(response.Results[0].Series) > 0 {
 		return true

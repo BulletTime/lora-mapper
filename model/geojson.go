@@ -20,19 +20,54 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package database
+package model
 
 import (
-	"time"
-
-	"github.com/bullettime/lora-mapper/model"
+	"github.com/paulmach/go.geojson"
+	"fmt"
+	"github.com/pkg/errors"
 )
 
-type Database interface {
-	Connect() error
-	Write([]model.Metric) error
-	QueryMeasurement(string) ([]model.Metric, error)
-	QueryMeasurementWithMaxAge(string, string) ([]model.Metric, error)
-	HasMetric(model.Metric, time.Time) bool
-	Close() error
+type gjson struct {
+	callbackName string
+	featureCollection *geojson.FeatureCollection
+}
+
+type GeoJSON interface {
+	GetGeoJSON() (string, error)
+	GetGeoJSONFromSF(string) (string, error)
+	GetGeoJSONFromGateway(string) (string, error)
+	GetGeoJSONFromGatewayAndSF(string, string) (string, error)
+}
+
+func NewGeoJSON(callbackName string) GeoJSON {
+	return &gjson{
+		callbackName: callbackName,
+		featureCollection: geojson.NewFeatureCollection(),
+	}
+}
+
+func (g *gjson) wrapCallbackFunction() (string, error) {
+	json, err := g.featureCollection.MarshalJSON()
+	if err != nil {
+		return "", errors.Wrap(err, "marshalling json from featurecollection")
+	}
+
+	return fmt.Sprintf("%s(%s);", g.callbackName, json), nil
+}
+
+func (g *gjson) GetGeoJSON() (string, error) {
+	return "", nil
+}
+
+func (g *gjson) GetGeoJSONFromSF(sf string) (string, error) {
+	return "", nil
+}
+
+func (g *gjson) GetGeoJSONFromGateway(gw string) (string, error) {
+	return "", nil
+}
+
+func (g *gjson) GetGeoJSONFromGatewayAndSF(gw string, sf string) (string, error) {
+	return "", nil
 }

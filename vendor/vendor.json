@@ -165,6 +165,12 @@
 			"revisionTime": "2018-02-20T23:01:11Z"
 		},
 		{
+			"checksumSHA1": "XA2XZQG9vKT4KPlIIj68InpTe7I=",
+			"path": "github.com/paulmach/go.geojson",
+			"revision": "009733452f4eb8d86c5165a3dcc816c32ed1486d",
+			"revisionTime": "2018-02-11T00:35:13Z"
+		},
+		{
 			"checksumSHA1": "qF0v8XQ53MGp26VQBaIu1mpfb14=",
 			"path": "github.com/pelletier/go-toml",
 			"revision": "66540cf1fcd2c3aee6f6787dfa32a6ae9a870f12",
