@@ -71,6 +71,12 @@ This command takes one arguments:
 		if err != nil {
 			log.WithError(err).Fatal("can't write geojson file")
 		}
+
+		log.WithFields(log.Fields{
+			"filename": output,
+			"sf": args[0],
+			"callback": callback,
+		}).Info("geojson file written")
 	},
 }
 

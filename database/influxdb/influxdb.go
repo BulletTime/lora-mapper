@@ -107,7 +107,7 @@ func (i *influxdb) Write(metrics []model.Metric) error {
 func (i *influxdb) query(command string) ([]model.Metric, error) {
 	var metrics []model.Metric
 
-	log.WithField("query", command).Debug("[Influxdb] query")
+	log.WithField("query", command).Info("[Influxdb] query")
 
 	query := client.NewQuery(command, i.options.Database, "")
 
