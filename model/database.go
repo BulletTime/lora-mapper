@@ -20,21 +20,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package database
+package model
 
 import (
 	"time"
-
-	"github.com/bullettime/lora-mapper/model"
 )
 
 type Database interface {
 	Connect() error
-	Write([]model.Metric) error
-	QueryMeasurement(string) ([]model.Metric, error)
-	QueryMeasurementWithFilter(string, string) ([]model.Metric, error)
-	QueryMeasurementWithMaxAge(string, string) ([]model.Metric, error)
-	QueryMeasurementWithMaxAgeAndFilter(string, string, string) ([]model.Metric, error)
-	HasMetric(model.Metric, time.Time) bool
+	Write([]Metric) error
+	QueryMeasurement(string) ([]Metric, error)
+	QueryMeasurementWithFilter(string, string) ([]Metric, error)
+	QueryMeasurementWithMaxAge(string, string) ([]Metric, error)
+	QueryMeasurementWithMaxAgeAndFilter(string, string, string) ([]Metric, error)
+	HasMetric(Metric, time.Time) bool
 	Close() error
 }

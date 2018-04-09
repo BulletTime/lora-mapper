@@ -29,7 +29,7 @@ import (
 	"github.com/bullettime/lora-mapper/model"
 )
 
-var server = "http://localhost:8086"
+var server = "http://192.168.1.7:8086"
 
 var options = InfluxOptions{
 	Server:   server,

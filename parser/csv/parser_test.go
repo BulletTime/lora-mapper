@@ -76,15 +76,15 @@ func TestCsvParser_Parse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(metrics) != 10 {
-		t.Error("there should be 10 metrics")
+	if len(metrics) != 9 {
+		t.Error("there should be 9 metrics")
 	}
 
-	if metrics[i].HasTag("data_rate") {
-		t.Error("the first metric should not have set a data rate")
-	}
-
-	i++
+	//if metrics[i].HasTag("data_rate") {
+	//	t.Error("the first metric should not have set a data rate")
+	//}
+	//
+	//i++
 
 	if metrics[i].Tags()["data_rate"] != "SF7BW125" {
 		t.Error("expected different data rate")

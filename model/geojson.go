@@ -24,14 +24,14 @@ package model
 
 import (
 	"fmt"
-	"github.com/bullettime/lora-mapper/database"
+	"strconv"
+
 	"github.com/paulmach/go.geojson"
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 type gjson struct {
-	db                database.Database
+	db                Database
 	callbackName      string
 	measurementName   string
 	featureCollection *geojson.FeatureCollection
@@ -44,7 +44,7 @@ type GeoJSON interface {
 	GetGeoJSONFromGatewayAndSF(string, string) (string, error)
 }
 
-func NewGeoJSON(db database.Database, measurementName string, callbackName string) GeoJSON {
+func NewGeoJSON(db Database, measurementName string, callbackName string) GeoJSON {
 	return &gjson{
 		db:                db,
 		callbackName:      callbackName,
@@ -55,7 +55,7 @@ func NewGeoJSON(db database.Database, measurementName string, callbackName strin
 
 func (g *gjson) addPoints(metrics []Metric) error {
 	for _, metric := range metrics {
-		if !metric.HasTag("latitude") || !metric.HasTag("longitude") || !metric.HasTag("rssi") {
+		if !metric.HasTag("latitude") || !metric.HasTag("longitude") || !metric.HasField("rssi") {
 			return errors.New("invalid metric")
 		}
 
@@ -88,6 +88,8 @@ func (g *gjson) wrapCallbackFunction() (string, error) {
 }
 
 func (g *gjson) GetGeoJSON() (string, error) {
+	g.featureCollection = geojson.NewFeatureCollection()
+
 	metrics, err := g.db.QueryMeasurement(g.measurementName)
 	if err != nil {
 		return "", err
@@ -101,6 +103,8 @@ func (g *gjson) GetGeoJSON() (string, error) {
 }
 
 func (g *gjson) GetGeoJSONFromSF(sf string) (string, error) {
+	g.featureCollection = geojson.NewFeatureCollection()
+
 	filter := fmt.Sprintf("data_rate = %s", sf)
 
 	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
@@ -116,6 +120,8 @@ func (g *gjson) GetGeoJSONFromSF(sf string) (string, error) {
 }
 
 func (g *gjson) GetGeoJSONFromGateway(gw string) (string, error) {
+	g.featureCollection = geojson.NewFeatureCollection()
+
 	filter := fmt.Sprintf("gateway_id = %s", gw)
 
 	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
@@ -131,7 +137,9 @@ func (g *gjson) GetGeoJSONFromGateway(gw string) (string, error) {
 }
 
 func (g *gjson) GetGeoJSONFromGatewayAndSF(gw string, sf string) (string, error) {
-	filter := fmt.Sprintf("gateway_id = %s and data_rate = %s ", gw, sf)
+	g.featureCollection = geojson.NewFeatureCollection()
+
+	filter := fmt.Sprintf("gateway_id = %s and data_rate = %s", gw, sf)
 
 	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
 	if err != nil {

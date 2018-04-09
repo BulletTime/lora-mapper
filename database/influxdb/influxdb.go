@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/apex/log"
-	"github.com/bullettime/lora-mapper/database"
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/influxdata/influxdb/client/v2"
 	"github.com/pkg/errors"
@@ -47,7 +46,7 @@ type InfluxOptions struct {
 	Precision string
 }
 
-func New(options InfluxOptions) database.Database {
+func New(options InfluxOptions) model.Database {
 	return &influxdb{
 		options: options,
 	}

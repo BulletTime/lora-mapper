@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/apex/log"
-	"github.com/bullettime/lora-mapper/database"
 	"github.com/bullettime/lora-mapper/database/influxdb"
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/bullettime/lora-mapper/parser/csv"
@@ -93,7 +92,7 @@ func init() {
 	addCmd.Flags().StringVar(&timeString, "time", "", "set the oldest time to compare data (in RFC3339 format)")
 }
 
-func addDataFromCSV(fileName string, db database.Database) {
+func addDataFromCSV(fileName string, db model.Database) {
 	var metricsToAdd []model.Metric
 	var t time.Time
 
