@@ -21,35 +21,29 @@
 package cmd
 
 import (
-	"bufio"
-	"os"
-	"time"
-
-	"github.com/apex/log"
-	"github.com/bullettime/lora-mapper/database/influxdb"
-	"github.com/bullettime/lora-mapper/model"
-	"github.com/bullettime/lora-mapper/parser/csv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/apex/log"
+	"github.com/bullettime/lora-mapper/database/influxdb"
+	"io/ioutil"
+	"github.com/bullettime/lora-mapper/model"
+	"github.com/bullettime/lora-mapper/parser/csv"
+	"github.com/pkg/errors"
 )
 
 var (
-	deviceID   string
-	timeString string
+	callback = "eqfeed_callback"
+	output = "data_geo.json"
 )
 
-// addCmd represents the add command
-var addCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add data from a file",
-	Long: `lora-mapper add will process the data stored in a csv file format and produced
-by the Sodaq-One logging device. It will only add the data that is missing in the database.
-This is necessary if you want to plot a coverage map that includes the points that were
-scanned and did not have reception.
+// geojsonCmd represents the geojson command
+var geojsonCmd = &cobra.Command{
+	Use:   "geojson",
+	Short: "Create a geo jsonp file from the data",
+	Long: `lora-mapper geojson creates a geo jsonp file from the data currently in the database.
 
-This command takes one argument:
-	- file name from the csv file [eg. data.csv]
-It will parse the data and add the missing data to the influx database.`,
+This command takes one arguments:
+	1. datarate [eg. SF7BW125]`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		influxOptions := influxdb.InfluxOptions{
@@ -73,73 +67,37 @@ It will parse the data and add the missing data to the influx database.`,
 		}
 		defer db.Close()
 
-		addDataFromCSV(args[0], db)
+		err = writeGeoJSONFile(db, args[0])
+		if err != nil {
+			log.WithError(err).Fatal("can't write geojson file")
+		}
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(addCmd)
+	RootCmd.AddCommand(geojsonCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// geojsonCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	addCmd.Flags().StringVar(&deviceID, "device-id", "", "adds the device id to data")
-	addCmd.Flags().StringVar(&timeString, "time", "", "set the oldest time to compare data (in RFC3339 format)")
+	// geojsonCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	geojsonCmd.Flags().StringVarP(&callback, "callback", "c", "eqfeed_callback", "name of the callback function")
+	geojsonCmd.Flags().StringVarP(&output, "output", "o", "data_geo.json", "name of the output file")
 }
 
-func addDataFromCSV(fileName string, db model.Database) {
-	var metricsToAdd []model.Metric
-	var t time.Time
+func writeGeoJSONFile(db model.Database, sf string) error {
+	g := model.NewGeoJSON(db, csv.LocationData, callback)
 
-	ctx := log.WithField("data-file", fileName)
-
-	p := csv.New()
-
-	if len(deviceID) > 0 {
-		p.SetDefaultTags(map[string]string{
-			"device_id": deviceID,
-		})
-	}
-
-	if len(timeString) > 0 {
-		var err error
-		t, err = time.Parse(time.RFC3339, timeString)
-		if err != nil {
-			log.WithError(err).Fatal("parsing time")
-		}
-	}
-
-	csvFile, err := os.Open(fileName)
+	data, err := g.GetGeoJSONFromSF(sf)
 	if err != nil {
-		ctx.WithError(err).Fatal("opening csv file")
-	}
-	defer csvFile.Close()
-
-	lineScanner := bufio.NewScanner(csvFile)
-
-	for lineScanner.Scan() {
-		metrics, _ := p.Parse(lineScanner.Bytes())
-
-		for _, metric := range metrics {
-			if !db.HasMetric(metric, t) {
-				log.WithField("metric", metric).Debug("add metric")
-				metricsToAdd = append(metricsToAdd, metric)
-			}
-		}
+		return errors.Wrapf(err, "retrieving geojson data with sf: %s", sf)
 	}
 
-	if len(metricsToAdd) > 0 {
-		err := db.Write(metricsToAdd)
-		if err != nil {
-			log.WithError(err).Fatal("writing metrics")
-		}
-	}
-
-	log.WithField("amount", len(metricsToAdd)).Info("metrics added")
+	return ioutil.WriteFile(output, []byte(data), 0644)
 }

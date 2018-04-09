@@ -105,7 +105,7 @@ func (g *gjson) GetGeoJSON() (string, error) {
 func (g *gjson) GetGeoJSONFromSF(sf string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
-	filter := fmt.Sprintf("data_rate = %s", sf)
+	filter := fmt.Sprintf("data_rate = '%s'", sf)
 
 	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
 	if err != nil {
@@ -122,7 +122,7 @@ func (g *gjson) GetGeoJSONFromSF(sf string) (string, error) {
 func (g *gjson) GetGeoJSONFromGateway(gw string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
-	filter := fmt.Sprintf("gateway_id = %s", gw)
+	filter := fmt.Sprintf("gateway_id = '%s'", gw)
 
 	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
 	if err != nil {
@@ -139,7 +139,7 @@ func (g *gjson) GetGeoJSONFromGateway(gw string) (string, error) {
 func (g *gjson) GetGeoJSONFromGatewayAndSF(gw string, sf string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
-	filter := fmt.Sprintf("gateway_id = %s and data_rate = %s", gw, sf)
+	filter := fmt.Sprintf("gateway_id = '%s' and data_rate = '%s'", gw, sf)
 
 	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
 	if err != nil {

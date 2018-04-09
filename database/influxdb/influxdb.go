@@ -71,6 +71,8 @@ func (i *influxdb) Connect() error {
 		return errors.Wrap(err, "[Influxdb] error establishing connection")
 	}
 
+	log.Info("[Influxdb] connected")
+
 	return nil
 }
 
@@ -104,6 +106,8 @@ func (i *influxdb) Write(metrics []model.Metric) error {
 
 func (i *influxdb) query(command string) ([]model.Metric, error) {
 	var metrics []model.Metric
+
+	log.WithField("query", command).Debug("[Influxdb] query")
 
 	query := client.NewQuery(command, i.options.Database, "")
 
@@ -201,6 +205,8 @@ func (i *influxdb) HasMetric(metric model.Metric, t time.Time) bool {
 }
 
 func (i *influxdb) Close() error {
+	defer log.Info("[Influxdb] disconnected")
+
 	if i.client != nil {
 		return i.client.Close()
 	}
