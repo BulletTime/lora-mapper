@@ -23,15 +23,17 @@
 package adapter
 
 import (
-	"net/http"
 	"github.com/apex/log"
+	"net/http"
 )
 
 func Log() Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-			log.Info("before")
-			defer log.Info("after")
+			defer log.WithFields(log.Fields{
+				"uri":            req.RequestURI,
+				"remote address": req.RemoteAddr,
+			}).Trace("[Web] access").Stop(nil)
 			h.ServeHTTP(res, req)
 		})
 	}

@@ -32,22 +32,20 @@ import (
 
 type gjson struct {
 	db                Database
-	callbackName      string
 	measurementName   string
 	featureCollection *geojson.FeatureCollection
 }
 
 type GeoJSON interface {
-	GetGeoJSON() (string, error)
-	GetGeoJSONFromSF(string) (string, error)
-	GetGeoJSONFromGateway(string) (string, error)
-	GetGeoJSONFromGatewayAndSF(string, string) (string, error)
+	GetGeoJSON(string) (string, error)
+	GetGeoJSONFromSF(string, string) (string, error)
+	GetGeoJSONFromGateway(string, string) (string, error)
+	GetGeoJSONFromGatewayAndSF(string, string, string) (string, error)
 }
 
-func NewGeoJSON(db Database, measurementName string, callbackName string) GeoJSON {
+func NewGeoJSON(db Database, measurementName string) GeoJSON {
 	return &gjson{
 		db:                db,
-		callbackName:      callbackName,
 		measurementName:   measurementName,
 		featureCollection: geojson.NewFeatureCollection(),
 	}
@@ -78,16 +76,20 @@ func (g *gjson) addPoints(metrics []Metric) error {
 	return nil
 }
 
-func (g *gjson) wrapCallbackFunction() (string, error) {
+func (g *gjson) getJSON(callback string) (string, error) {
 	json, err := g.featureCollection.MarshalJSON()
 	if err != nil {
 		return "", errors.Wrap(err, "marshalling json from featurecollection")
 	}
 
-	return fmt.Sprintf("%s(%s);", g.callbackName, json), nil
+	if callback != "" {
+		return fmt.Sprintf("%s(%s);", callback, json), nil
+	} else {
+		return fmt.Sprintf("%s", json), nil
+	}
 }
 
-func (g *gjson) GetGeoJSON() (string, error) {
+func (g *gjson) GetGeoJSON(callback string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
 	metrics, err := g.db.QueryMeasurement(g.measurementName)
@@ -99,10 +101,10 @@ func (g *gjson) GetGeoJSON() (string, error) {
 		return "", err
 	}
 
-	return g.wrapCallbackFunction()
+	return g.getJSON(callback)
 }
 
-func (g *gjson) GetGeoJSONFromSF(sf string) (string, error) {
+func (g *gjson) GetGeoJSONFromSF(sf string, callback string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
 	filter := fmt.Sprintf("data_rate = '%s'", sf)
@@ -116,13 +118,13 @@ func (g *gjson) GetGeoJSONFromSF(sf string) (string, error) {
 		return "", err
 	}
 
-	return g.wrapCallbackFunction()
+	return g.getJSON(callback)
 }
 
-func (g *gjson) GetGeoJSONFromGateway(gw string) (string, error) {
+func (g *gjson) GetGeoJSONFromGateway(gateway string, callback string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
-	filter := fmt.Sprintf("gateway_id = '%s'", gw)
+	filter := fmt.Sprintf("gateway_id = '%s'", gateway)
 
 	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
 	if err != nil {
@@ -133,13 +135,13 @@ func (g *gjson) GetGeoJSONFromGateway(gw string) (string, error) {
 		return "", err
 	}
 
-	return g.wrapCallbackFunction()
+	return g.getJSON(callback)
 }
 
-func (g *gjson) GetGeoJSONFromGatewayAndSF(gw string, sf string) (string, error) {
+func (g *gjson) GetGeoJSONFromGatewayAndSF(gateway string, sf string, callback string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
-	filter := fmt.Sprintf("gateway_id = '%s' and data_rate = '%s'", gw, sf)
+	filter := fmt.Sprintf("gateway_id = '%s' and data_rate = '%s'", gateway, sf)
 
 	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
 	if err != nil {
@@ -150,5 +152,5 @@ func (g *gjson) GetGeoJSONFromGatewayAndSF(gw string, sf string) (string, error)
 		return "", err
 	}
 
-	return g.wrapCallbackFunction()
+	return g.getJSON(callback)
 }

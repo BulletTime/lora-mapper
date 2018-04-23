@@ -25,9 +25,9 @@ package model_test
 import (
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/pkg/errors"
+	"strings"
 	"testing"
 	"time"
-	"strings"
 )
 
 type mockingDB struct{}
@@ -101,13 +101,13 @@ func setup() {
 	metrics = make([]model.Metric, 0)
 
 	tags := map[string]string{
-		"data_rate": "SF12BW125",
-		"device_id": "sodaq_one_test",
-		"frequency": "867.7",
+		"data_rate":  "SF12BW125",
+		"device_id":  "sodaq_one_test",
+		"frequency":  "867.7",
 		"gateway_id": "eui-008000000000b88d",
-		"latitude": "51.0019",
-		"longitude": "4.7135",
-		"power": "1",
+		"latitude":   "51.0019",
+		"longitude":  "4.7135",
+		"power":      "1",
 	}
 	fields := map[string]interface{}{
 		"size": 7,
@@ -119,13 +119,13 @@ func setup() {
 	metrics = append(metrics, metric)
 
 	tags = map[string]string{
-		"data_rate": "SF11BW125",
-		"device_id": "sodaq_one_test",
-		"frequency": "867.5",
+		"data_rate":  "SF11BW125",
+		"device_id":  "sodaq_one_test",
+		"frequency":  "867.5",
 		"gateway_id": "eui-e4a7a0ffffd4bbaa",
-		"latitude": "51.0019",
-		"longitude": "4.7135",
-		"power": "1",
+		"latitude":   "51.0019",
+		"longitude":  "4.7135",
+		"power":      "1",
 	}
 	fields = map[string]interface{}{
 		"size": 7,
@@ -145,7 +145,7 @@ func TestGjson_GetGeoJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !(strings.HasPrefix(json, callbackName + "(") && strings.HasSuffix(json, ");")) {
+	if !(strings.HasPrefix(json, callbackName+"(") && strings.HasSuffix(json, ");")) {
 		t.Error("callback function isn't wrapped around the json code")
 	}
 
@@ -164,7 +164,7 @@ func TestGjson_GetGeoJSONFromSF(t *testing.T) {
 		t.Error("probably wrong sf..")
 	}
 
-	if !(strings.HasPrefix(json, callbackName + "(") && strings.HasSuffix(json, ");")) {
+	if !(strings.HasPrefix(json, callbackName+"(") && strings.HasSuffix(json, ");")) {
 		t.Error("callback function isn't wrapped around the json code")
 	}
 
@@ -179,7 +179,7 @@ func TestGjson_GetGeoJSONFromSF(t *testing.T) {
 		t.Error("probably wrong sf..")
 	}
 
-	if !(strings.HasPrefix(json, callbackName + "(") && strings.HasSuffix(json, ");")) {
+	if !(strings.HasPrefix(json, callbackName+"(") && strings.HasSuffix(json, ");")) {
 		t.Error("callback function isn't wrapped around the json code")
 	}
 
@@ -205,7 +205,7 @@ func TestGjson_GetGeoJSONFromGateway(t *testing.T) {
 		t.Error("probably wrong sf..")
 	}
 
-	if !(strings.HasPrefix(json, callbackName + "(") && strings.HasSuffix(json, ");")) {
+	if !(strings.HasPrefix(json, callbackName+"(") && strings.HasSuffix(json, ");")) {
 		t.Error("callback function isn't wrapped around the json code")
 	}
 
@@ -220,7 +220,7 @@ func TestGjson_GetGeoJSONFromGateway(t *testing.T) {
 		t.Error("probably wrong sf..")
 	}
 
-	if !(strings.HasPrefix(json, callbackName + "(") && strings.HasSuffix(json, ");")) {
+	if !(strings.HasPrefix(json, callbackName+"(") && strings.HasSuffix(json, ");")) {
 		t.Error("callback function isn't wrapped around the json code")
 	}
 
@@ -246,7 +246,7 @@ func TestGjson_GetGeoJSONFromGatewayAndSF(t *testing.T) {
 		t.Error("probably wrong sf..")
 	}
 
-	if !(strings.HasPrefix(json, callbackName + "(") && strings.HasSuffix(json, ");")) {
+	if !(strings.HasPrefix(json, callbackName+"(") && strings.HasSuffix(json, ");")) {
 		t.Error("callback function isn't wrapped around the json code")
 	}
 
@@ -261,7 +261,7 @@ func TestGjson_GetGeoJSONFromGatewayAndSF(t *testing.T) {
 		t.Error("probably wrong sf..")
 	}
 
-	if !(strings.HasPrefix(json, callbackName + "(") && strings.HasSuffix(json, ");")) {
+	if !(strings.HasPrefix(json, callbackName+"(") && strings.HasSuffix(json, ");")) {
 		t.Error("callback function isn't wrapped around the json code")
 	}
 

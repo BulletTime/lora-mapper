@@ -21,33 +21,29 @@
 package cmd
 
 import (
-	"io/ioutil"
+	"fmt"
 
 	"github.com/apex/log"
+	"github.com/bullettime/lora-mapper/daemon"
 	"github.com/bullettime/lora-mapper/database/influxdb"
-	"github.com/bullettime/lora-mapper/model"
-	"github.com/bullettime/lora-mapper/parser/csv"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var (
-	callback string
-	output   string
-)
+// startCmd represents the start command
+var startCmd = &cobra.Command{
+	Use:   "start",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
 
-// geojsonCmd represents the geojson command
-var geojsonCmd = &cobra.Command{
-	Use:   "geojson",
-	Short: "Create a geo jsonp file from the data",
-	Long: `lora-mapper geojson creates a geo jsonp file from the data currently in the database.
-
-This command takes one arguments:
-	1. datarate [eg. SF7BW125]`,
-	Args: cobra.ExactArgs(1),
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		influxOptions := influxdb.InfluxOptions{
+		fmt.Println("start called")
+
+		dbOptions := influxdb.InfluxOptions{
 			Server:    viper.GetString("influxdb.server.url"),
 			Username:  viper.GetString("influxdb.server.username"),
 			Password:  viper.GetString("influxdb.server.password"),
@@ -55,56 +51,34 @@ This command takes one arguments:
 			Precision: viper.GetString("influxdb.precision"),
 		}
 		log.WithFields(log.Fields{
-			"Server":    influxOptions.Server,
-			"Username":  influxOptions.Username,
-			"Database":  influxOptions.Database,
-			"Precision": influxOptions.Precision,
-		}).Debug("InfluxDB Options")
-		db := influxdb.New(influxOptions)
+			"Server":    dbOptions.Server,
+			"Username":  dbOptions.Username,
+			"Database":  dbOptions.Database,
+			"Precision": dbOptions.Precision,
+		}).Debug("DB Options")
 
-		err := db.Connect()
-		if err != nil {
-			log.WithError(err).Fatal("can't connect to the influx database")
-		}
-		defer db.Close()
-
-		err = writeGeoJSONFile(db, args[0])
-		if err != nil {
-			log.WithError(err).Fatal("can't write geojson file")
+		server := daemon.Daemon{
+			Address:   ":8080",
+			TLS:       false,
+			DBOptions: dbOptions,
 		}
 
-		log.WithFields(log.Fields{
-			"filename": output,
-			"sf":       args[0],
-			"callback": callback,
-		}).Info("geojson file written")
+		if err := server.Run(); err != nil {
+			log.WithError(err).Error("stopped by error")
+		}
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(geojsonCmd)
+	RootCmd.AddCommand(startCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// geojsonCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// startCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// geojsonCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
-	geojsonCmd.Flags().StringVarP(&callback, "callback", "c", "eqfeed_callback", "name of the callback function")
-	geojsonCmd.Flags().StringVarP(&output, "output", "o", "data_geo.json", "name of the output file")
-}
-
-func writeGeoJSONFile(db model.Database, sf string) error {
-	g := model.NewGeoJSON(db, csv.LocationData)
-
-	data, err := g.GetGeoJSONFromSF(sf, callback)
-	if err != nil {
-		return errors.Wrapf(err, "retrieving geojson data with sf: %s", sf)
-	}
-
-	return ioutil.WriteFile(output, []byte(data), 0644)
+	// startCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

@@ -24,7 +24,6 @@ package adapter
 
 import (
 	"net/http"
-
 )
 
 type Adapter func(http.Handler) http.Handler
@@ -35,4 +34,3 @@ func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
 	}
 	return h
 }
-

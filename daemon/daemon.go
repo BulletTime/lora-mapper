@@ -23,22 +23,26 @@
 package daemon
 
 import (
-	"net"
-	"github.com/pkg/errors"
 	"crypto/tls"
+	"github.com/apex/log"
+	"github.com/bullettime/lora-mapper/database/influxdb"
+	"github.com/bullettime/lora-mapper/web"
+	"github.com/pkg/errors"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/apex/log"
-	"github.com/bullettime/lora-mapper/web"
 )
 
 type Daemon struct {
-	Address string
-	Listener net.Listener
-	TLS bool
+	Address          string
+	TLS              bool
 	CertFileLocation string
-	KeyFileLocation string
+	KeyFileLocation  string
+
+	DBOptions influxdb.InfluxOptions
+
+	listener net.Listener
 }
 
 func (d *Daemon) Run() error {
@@ -49,6 +53,14 @@ func (d *Daemon) Run() error {
 	}
 
 	log.WithField("listening address", d.Address).Info("starting listener")
+
+	db := influxdb.New(d.DBOptions)
+
+	err = db.Connect()
+	if err != nil {
+		log.WithError(err).Fatal("can't connect to the influx database")
+	}
+	defer db.Close()
 
 	if d.TLS {
 		if len(d.CertFileLocation) == 0 || len(d.KeyFileLocation) == 0 {
@@ -61,20 +73,20 @@ func (d *Daemon) Run() error {
 		}
 		config := &tls.Config{Certificates: []tls.Certificate{cert}}
 
-		d.Listener, err = tls.Listen("tcp", d.Address, config)
+		d.listener, err = tls.Listen("tcp", d.Address, config)
 		if err != nil {
 			return errors.Wrap(err, "error starting tls listener")
 		}
 	} else {
-		d.Listener, err = net.Listen("tcp", d.Address)
+		d.listener, err = net.Listen("tcp", d.Address)
 		if err != nil {
 			return errors.Wrap(err, "error starting net listener")
 		}
 	}
 
-	defer d.Listener.Close()
+	defer d.listener.Close()
 
-	web.Start(d.Listener)
+	web.Start(d.listener, db)
 
 	waitForSignal()
 
