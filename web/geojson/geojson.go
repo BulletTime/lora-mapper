@@ -24,11 +24,12 @@ package geojson
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+
 	"github.com/apex/log"
 	"github.com/bullettime/lora-mapper/model"
-	"github.com/bullettime/lora-mapper/parser/csv"
 	"github.com/bullettime/lora-mapper/web/utils"
-	"net/http"
 )
 
 type Handler struct {
@@ -37,11 +38,23 @@ type Handler struct {
 
 func NewHandler(db model.Database) *Handler {
 	return &Handler{
-		geoJSON: model.NewGeoJSON(db, csv.LocationData),
+		//geoJSON: model.NewGeoJSON(db, csv.LocationData),
+		geoJSON: model.NewGeoJSON(db, "web"),
 	}
 }
 
 func (h *Handler) Handle() http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.Method {
+		case "GET":
+			h.handleGet().ServeHTTP(res, req)
+		default:
+			http.Error(res, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		}
+	})
+}
+
+func (h *Handler) handleGet() http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		var head string
 
@@ -53,29 +66,34 @@ func (h *Handler) Handle() http.Handler {
 		head, req.URL.Path = utils.ShiftPath(req.URL.Path)
 
 		switch head {
+		case "all":
+			h.handleAll(req.Form).ServeHTTP(res, req)
 		case "sf7":
-			h.handleSF7(req.Form["callback"][0]).ServeHTTP(res, req)
+			h.handleSF("SF7BW125", req.Form).ServeHTTP(res, req)
 		case "sf8":
-			h.handleSF8(req.Form["callback"][0]).ServeHTTP(res, req)
+			h.handleSF("SF8BW125", req.Form).ServeHTTP(res, req)
 		case "sf9":
-			h.handleSF9(req.Form["callback"][0]).ServeHTTP(res, req)
+			h.handleSF("SF9BW125", req.Form).ServeHTTP(res, req)
 		case "sf10":
-			h.handleSF10(req.Form["callback"][0]).ServeHTTP(res, req)
+			h.handleSF("SF10BW125", req.Form).ServeHTTP(res, req)
 		case "sf11":
-			h.handleSF11(req.Form["callback"][0]).ServeHTTP(res, req)
+			h.handleSF("SF11BW125", req.Form).ServeHTTP(res, req)
 		case "sf12":
-			h.handleSF12(req.Form["callback"][0]).ServeHTTP(res, req)
+			h.handleSF("SF12BW125", req.Form).ServeHTTP(res, req)
 		default:
 			http.NotFound(res, req)
 		}
 	})
 }
 
-func (h *Handler) handleSF7(callback string) http.Handler {
+func (h *Handler) handleSF(sf string, params url.Values) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSONFromSF("SF7BW125", callback)
+		json, err := h.geoJSON.GetGeoJSONFromSF(sf, params.Get("callback"))
 		if err != nil {
-			log.WithError(err).Error("handle sf7")
+			log.WithFields(log.Fields{
+				"sf":         sf,
+				"parameters": params,
+			}).WithError(err).Error("handle sf")
 			http.NotFound(res, req)
 		}
 
@@ -83,59 +101,13 @@ func (h *Handler) handleSF7(callback string) http.Handler {
 	})
 }
 
-func (h *Handler) handleSF8(callback string) http.Handler {
+func (h *Handler) handleAll(params url.Values) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSONFromSF("SF8BW125", callback)
+		json, err := h.geoJSON.GetGeoJSON(params.Get("callback"))
 		if err != nil {
-			log.WithError(err).Error("handle sf8")
-			http.NotFound(res, req)
-		}
-
-		h.writeJSON(json).ServeHTTP(res, req)
-	})
-}
-
-func (h *Handler) handleSF9(callback string) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSONFromSF("SF9BW125", callback)
-		if err != nil {
-			log.WithError(err).Error("handle sf9")
-			http.NotFound(res, req)
-		}
-
-		h.writeJSON(json).ServeHTTP(res, req)
-	})
-}
-
-func (h *Handler) handleSF10(callback string) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSONFromSF("SF10BW125", callback)
-		if err != nil {
-			log.WithError(err).Error("handle sf10")
-			http.NotFound(res, req)
-		}
-
-		h.writeJSON(json).ServeHTTP(res, req)
-	})
-}
-
-func (h *Handler) handleSF11(callback string) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSONFromSF("SF11BW125", callback)
-		if err != nil {
-			log.WithError(err).Error("handle sf11")
-			http.NotFound(res, req)
-		}
-
-		h.writeJSON(json).ServeHTTP(res, req)
-	})
-}
-
-func (h *Handler) handleSF12(callback string) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSONFromSF("SF12BW125", callback)
-		if err != nil {
-			log.WithError(err).Error("handle sf12")
+			log.WithFields(log.Fields{
+				"parameters": params,
+			}).WithError(err).Error("handle all")
 			http.NotFound(res, req)
 		}
 

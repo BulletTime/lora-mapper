@@ -23,23 +23,26 @@
 package web
 
 import (
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/bullettime/lora-mapper/web/adapter"
 	"github.com/bullettime/lora-mapper/web/geojson"
 	"github.com/bullettime/lora-mapper/web/index"
+	"github.com/bullettime/lora-mapper/web/maps"
 	"github.com/bullettime/lora-mapper/web/utils"
-	"net"
-	"time"
 )
 
 type App struct {
 	IndexHandler   *index.Handler
 	GeoJSONHandler *geojson.Handler
+	MapsHandler    *maps.Handler
 }
 
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+
 	var head string
 
 	if req.URL.Path == "/" {
@@ -50,6 +53,8 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		switch head {
 		case "geojson":
 			adapter.Adapt(h.GeoJSONHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
+		case "maps":
+			adapter.Adapt(h.MapsHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
 		default:
 			http.NotFound(res, req)
 		}
@@ -66,6 +71,7 @@ func Start(listener net.Listener, db model.Database) {
 	app := &App{
 		IndexHandler:   index.NewHandler(),
 		GeoJSONHandler: geojson.NewHandler(db),
+		MapsHandler:    maps.NewHandler(),
 	}
 
 	http.Handle("/", app)

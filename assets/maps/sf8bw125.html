@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      th, td {
+        padding-left: 10px;
+        text-align: left;
+      }
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      #legend {
+        font-family: Arial, sans-serif;
+        font-size: 120%;
+        background: #ffffff;
+        padding: 10px;
+        margin: 10px;
+        border: 2px solid #555555;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="legend">
+      <table>
+        <tr>
+          <th>Color</th>
+          <th>RSSI (dBm)</th>
+        </tr>
+        <tr>
+          <td bgcolor="#ff0000"></td>
+          <td>]&infin;; -100[</td>
+        </tr>
+        <tr>
+          <td bgcolor="#ff8000"></td>
+          <td>[-100;-105[</td>
+        </tr>
+        <tr>
+          <td bgcolor="#ffff00"></td>
+          <td>[-105;-110[</td>
+        </tr>
+        <tr>
+          <td bgcolor="#40ff00"></td>
+          <td>[-110;-115[</td>
+        </tr>
+        <tr>
+          <td bgcolor="#00ffff"></td>
+          <td>[-115;-120[</td>
+        </tr>
+        <tr>
+          <td bgcolor="#0000ff"></td>
+          <td>[-120;-&infin;[</td>
+        </tr>
+        <tr>
+          <td bgcolor="#808080"></td>
+          <td>Packet lost</td>
+        </tr>
+      </table>
+    </div>
+    <script>
+      var map;
+      function initMap() {
+        var gatewayHome = {lat: 51.001811, lng: 4.713596};
+        var gatewayKUL = {lat:50.862279, lng: 4.685495};
+
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 16,
+          center: gatewayKUL,
+          // mapTypeId: 'hybrid'
+        });
+
+        var markerHome = new google.maps.Marker({
+          position: gatewayHome,
+          map: map,
+          title: 'Gateway: 008000000000b88d',
+          label: 'G',
+          zIndex: 7,
+        });
+
+        var markerKUL = new google.maps.Marker({
+          position: gatewayKUL,
+          map: map,
+          title: 'Gateway: e4a7a0ffffd4bbaa',
+          label: 'G',
+          zIndex: 7,
+        });
+
+        var legend = document.getElementById('legend');
+        map.controls[google.maps.ControlPosition.LEFT_BOTTOM].push(legend);
+
+        // Create a <script> tag and set the USGS URL as the source.
+        var script = document.createElement('script');
+
+        // This example uses a local copy of the GeoJSON stored at
+        // http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojsonp
+        script.src = '/geojson/sf8?callback=eqfeed_callback';
+        document.getElementsByTagName('head')[0].appendChild(script);
+      }
+
+      function eqfeed_callback(results) {
+        for (var i = 0; i < results.features.length; i++) {
+          var coords = results.features[i].geometry.coordinates;
+          var latLng = new google.maps.LatLng(coords[0], coords[1]);
+          var colorAndIndex = getColorAndIndex(results.features[i].properties.rssi);
+          var circle = new google.maps.Circle({
+            center: latLng,
+            fillColor: colorAndIndex[0],
+            fillOpacity: 1,
+            map: map,
+            radius: 5,
+            strokeColor: colorAndIndex[0],
+            strokeOpacity: 0.6,
+            strokeWeight: 25,
+            zIndex: colorAndIndex[1],
+          });
+        }
+      }
+
+      function getColorAndIndex(rssi) {
+        var color;
+        var index;
+        if (rssi == 0) {
+          color = "#808080";
+          index = 0;
+        } else if (rssi > -100) {
+          color = "#ff0000";
+          index = 6;
+        } else if (rssi > -105) {
+          color = "#ff8000";
+          index = 5;
+        } else if (rssi > -110) {
+          color = "#ffff00";
+          index = 4;
+        } else if (rssi > -115) {
+          color = "#40ff00";
+          index = 3;
+        } else if (rssi > -120) {
+          color = "#00ffff";
+          index = 2;
+        } else {
+          color = "#0000ff";
+          index = 1;
+        }
+        return [color, index];
+      }
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyATGmbSfdpAzu6MfldU8mrrABmE059XGCs&libraries=visualization&callback=initMap">
+    </script>
+  </body>
+</html>

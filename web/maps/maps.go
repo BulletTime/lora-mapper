@@ -20,24 +20,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package adapter
+package maps
 
 import (
 	"net/http"
 
-	"github.com/apex/log"
+	"github.com/spf13/viper"
 )
 
-func Log() Adapter {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-			defer log.WithFields(log.Fields{
-				"uri":            req.RequestURI,
-				"remote address": req.RemoteAddr,
-				"method":         req.Method,
-				"headers":        req.Header,
-			}).Trace("[Web] access").Stop(nil)
-			h.ServeHTTP(res, req)
-		})
-	}
+type Handler struct{}
+
+func NewHandler() *Handler {
+	return &Handler{}
+}
+
+func (h *Handler) Handle() http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.URL.Path {
+		case "/":
+			http.NotFound(res, req)
+		default:
+			req.URL.Path = req.RequestURI
+			h.handleSubfiles().ServeHTTP(res, req)
+		}
+	})
+}
+
+func (h *Handler) handleSubfiles() http.Handler {
+	return http.FileServer(http.Dir(viper.GetString("assets")))
 }

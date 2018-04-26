@@ -28,6 +28,7 @@ import (
 
 	"github.com/paulmach/go.geojson"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 type gjson struct {
@@ -66,9 +67,12 @@ func (g *gjson) addPoints(metrics []Metric) error {
 			return errors.New("invalid longitude")
 		}
 		rssi := metric.Fields()["rssi"]
+		dataRate := metric.Tags()["data_rate"]
+		sf := strings.ToLower(dataRate[:len(dataRate) - 5])
 
 		feature := geojson.NewPointFeature([]float64{lat, lon})
 		feature.SetProperty("rssi", rssi)
+		feature.SetProperty("sf", sf)
 
 		g.featureCollection.AddFeature(feature)
 	}
@@ -92,7 +96,7 @@ func (g *gjson) getJSON(callback string) (string, error) {
 func (g *gjson) GetGeoJSON(callback string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
-	metrics, err := g.db.QueryMeasurement(g.measurementName)
+	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, "rssi != 0")
 	if err != nil {
 		return "", err
 	}

@@ -27,15 +27,24 @@ import (
 	"net/http"
 )
 
-const indexHTML = `
-<!DOCTYPE HTML>
+const indexHTML = `<!DOCTYPE HTML>
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Go Web App</title>
+    <title>LoRa Coverage</title>
   </head>
   <body>
-    <div id='root'>testing</div>
+    <div id='root'>
+	  <ul>
+		<li><a href="/maps/coverage.html">All Spreading Factors</a></li>
+	  	<li><a href="/maps/sf7bw125.html">SF7 BW125</a></li>
+	  	<li><a href="/maps/sf8bw125.html">SF8 BW125</a></li>
+	  	<li><a href="/maps/sf9bw125.html">SF9 BW125</a></li>
+	  	<li><a href="/maps/sf10bw125.html">SF10 BW125</a></li>
+	  	<li><a href="/maps/sf11bw125.html">SF11 BW125</a></li>
+	  	<li><a href="/maps/sf12bw125.html">SF12 BW125</a></li>
+	  </ul>
+	</div>
   </body>
 </html>
 `
@@ -47,6 +56,17 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) Handle() http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.Method {
+		case "GET":
+			h.handleGet().ServeHTTP(res, req)
+		default:
+			http.Error(res, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		}
+	})
+}
+
+func(h *Handler) handleGet() http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(res, indexHTML)
 	})

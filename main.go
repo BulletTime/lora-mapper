@@ -29,12 +29,16 @@ var (
 	version   = "0.1"
 	build     = "unknown"
 	buildDate = "unknown"
+
+	assets = "assets"
 )
 
 func main() {
 	viper.Set("version", version)
 	viper.Set("build", build)
 	viper.Set("buildDate", buildDate)
+
+	viper.Set("assets", assets)
 
 	cmd.Execute()
 }
