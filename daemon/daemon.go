@@ -24,14 +24,15 @@ package daemon
 
 import (
 	"crypto/tls"
-	"github.com/apex/log"
-	"github.com/bullettime/lora-mapper/database/influxdb"
-	"github.com/bullettime/lora-mapper/web"
-	"github.com/pkg/errors"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/apex/log"
+	"github.com/bullettime/lora-mapper/database/influxdb"
+	"github.com/bullettime/lora-mapper/web"
+	"github.com/pkg/errors"
 )
 
 type Daemon struct {

@@ -36,13 +36,13 @@ const indexHTML = `<!DOCTYPE HTML>
   <body>
     <div id='root'>
 	  <ul>
-		<li><a href="/maps/coverage.html">All Spreading Factors</a></li>
-	  	<li><a href="/maps/sf7bw125.html">SF7 BW125</a></li>
-	  	<li><a href="/maps/sf8bw125.html">SF8 BW125</a></li>
-	  	<li><a href="/maps/sf9bw125.html">SF9 BW125</a></li>
-	  	<li><a href="/maps/sf10bw125.html">SF10 BW125</a></li>
-	  	<li><a href="/maps/sf11bw125.html">SF11 BW125</a></li>
-	  	<li><a href="/maps/sf12bw125.html">SF12 BW125</a></li>
+		<li><a href="maps/coverage.html">All Spreading Factors</a></li>
+	  	<li><a href="maps/sf7bw125.html">SF7 BW125</a></li>
+	  	<li><a href="maps/sf8bw125.html">SF8 BW125</a></li>
+	  	<li><a href="maps/sf9bw125.html">SF9 BW125</a></li>
+	  	<li><a href="maps/sf10bw125.html">SF10 BW125</a></li>
+	  	<li><a href="maps/sf11bw125.html">SF11 BW125</a></li>
+	  	<li><a href="maps/sf12bw125.html">SF12 BW125</a></li>
 	  </ul>
 	</div>
   </body>

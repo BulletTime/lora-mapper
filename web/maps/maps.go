@@ -28,17 +28,19 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Handler struct{
-	assets string
+type Handler struct {
+	BaseURL string
+	Assets  string
 }
 
-func NewHandler() *Handler {
-	assets := viper.GetString("web.assets")
+func NewHandler(base string) *Handler {
+	assets := viper.GetString("web.Assets")
 	if assets == "" {
 		assets = "."
 	}
 	return &Handler{
-		assets: assets,
+		BaseURL: base,
+		Assets:  assets,
 	}
 }
 
@@ -55,5 +57,5 @@ func (h *Handler) Handle() http.Handler {
 }
 
 func (h *Handler) handleSubfiles() http.Handler {
-	return http.FileServer(http.Dir(h.assets))
+		return http.StripPrefix(h.BaseURL, http.FileServer(http.Dir(h.Assets)))
 }

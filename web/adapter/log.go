@@ -31,12 +31,13 @@ import (
 func Log() Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-			defer log.WithFields(log.Fields{
-				"uri":            req.RequestURI,
+			defer log.WithField("uri", req.RequestURI).Trace("[Web] trace").Stop(nil)
+			log.WithFields(log.Fields{
+				//"uri":            req.RequestURI,
 				"remote address": req.RemoteAddr,
 				"method":         req.Method,
 				"headers":        req.Header,
-			}).Trace("[Web] access").Stop(nil)
+			}).Info("[Web] access")
 			h.ServeHTTP(res, req)
 		})
 	}

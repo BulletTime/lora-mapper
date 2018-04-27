@@ -33,6 +33,7 @@ import (
 	"github.com/bullettime/lora-mapper/web/index"
 	"github.com/bullettime/lora-mapper/web/maps"
 	"github.com/bullettime/lora-mapper/web/utils"
+	"github.com/spf13/viper"
 )
 
 type App struct {
@@ -42,26 +43,25 @@ type App struct {
 }
 
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-
 	var head string
 
-	if req.URL.Path == "/" {
-		adapter.Adapt(h.IndexHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
-	} else {
-		head, req.URL.Path = utils.ShiftPath(req.URL.Path)
+	head, req.URL.Path = utils.ShiftPath(req.URL.Path)
 
-		switch head {
-		case "geojson":
-			adapter.Adapt(h.GeoJSONHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
-		case "maps":
-			adapter.Adapt(h.MapsHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
-		default:
-			http.NotFound(res, req)
-		}
+	switch head {
+	case "":
+		adapter.Adapt(h.IndexHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
+	case "geojson":
+		adapter.Adapt(h.GeoJSONHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
+	case "maps":
+		adapter.Adapt(h.MapsHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
+	default:
+		http.NotFound(res, req)
 	}
 }
 
 func Start(listener net.Listener, db model.Database) {
+	base := viper.GetString("web.baseurl")
+
 	server := &http.Server{
 		ReadTimeout:    60 * time.Second,
 		WriteTimeout:   60 * time.Second,
@@ -71,10 +71,10 @@ func Start(listener net.Listener, db model.Database) {
 	app := &App{
 		IndexHandler:   index.NewHandler(),
 		GeoJSONHandler: geojson.NewHandler(db),
-		MapsHandler:    maps.NewHandler(),
+		MapsHandler:    maps.NewHandler(base),
 	}
 
-	http.Handle("/", app)
+	http.Handle("/", http.StripPrefix(base, app))
 
 	go server.Serve(listener)
 }
