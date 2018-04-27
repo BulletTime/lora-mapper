@@ -58,9 +58,11 @@ to quickly create a Cobra application.`,
 		}).Debug("DB Options")
 
 		server := daemon.Daemon{
-			Address:   ":8080",
-			TLS:       false,
-			DBOptions: dbOptions,
+			Address:          viper.GetString("web.address"),
+			TLS:              viper.GetBool("web.tls"),
+			CertFileLocation: viper.GetString("web.certfile"),
+			KeyFileLocation:  viper.GetString("web.keyfile"),
+			DBOptions:        dbOptions,
 		}
 
 		if err := server.Run(); err != nil {

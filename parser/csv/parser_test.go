@@ -44,7 +44,7 @@ const (
 func TestNew(t *testing.T) {
 	p := New()
 
-	if p.(*csvParser).MetricName != LocationData {
+	if len(p.(*csvParser).MetricName) == 0 {
 		t.Error("metric name should be set automatically")
 	}
 }

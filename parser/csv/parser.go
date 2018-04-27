@@ -34,6 +34,7 @@ import (
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/bullettime/lora-mapper/parser"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -62,8 +63,14 @@ type csvParser struct {
 }
 
 func New() parser.Parser {
+	metricName := viper.GetString("metric.name")
+
+	if metricName == "" {
+		metricName = LocationData
+	}
+
 	p := csvParser{
-		MetricName: LocationData,
+		MetricName: metricName,
 	}
 
 	return &p

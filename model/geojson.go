@@ -25,10 +25,10 @@ package model
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/paulmach/go.geojson"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 type gjson struct {
@@ -68,7 +68,7 @@ func (g *gjson) addPoints(metrics []Metric) error {
 		}
 		rssi := metric.Fields()["rssi"]
 		dataRate := metric.Tags()["data_rate"]
-		sf := strings.ToLower(dataRate[:len(dataRate) - 5])
+		sf := strings.ToLower(dataRate[:len(dataRate)-5])
 
 		feature := geojson.NewPointFeature([]float64{lat, lon})
 		feature.SetProperty("rssi", rssi)

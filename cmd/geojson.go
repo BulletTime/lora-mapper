@@ -99,7 +99,13 @@ func init() {
 }
 
 func writeGeoJSONFile(db model.Database, sf string) error {
-	g := model.NewGeoJSON(db, csv.LocationData)
+	metricName := viper.GetString("metric.name")
+
+	if metricName == "" {
+		metricName = csv.LocationData
+	}
+
+	g := model.NewGeoJSON(db, metricName)
 
 	data, err := g.GetGeoJSONFromSF(sf, callback)
 	if err != nil {

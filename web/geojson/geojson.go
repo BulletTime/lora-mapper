@@ -30,6 +30,8 @@ import (
 	"github.com/apex/log"
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/bullettime/lora-mapper/web/utils"
+	"github.com/spf13/viper"
+	"github.com/bullettime/lora-mapper/parser/csv"
 )
 
 type Handler struct {
@@ -37,9 +39,14 @@ type Handler struct {
 }
 
 func NewHandler(db model.Database) *Handler {
+	metricName := viper.GetString("metric.name")
+
+	if metricName == "" {
+		metricName = csv.LocationData
+	}
+
 	return &Handler{
-		//geoJSON: model.NewGeoJSON(db, csv.LocationData),
-		geoJSON: model.NewGeoJSON(db, "web"),
+		geoJSON: model.NewGeoJSON(db, metricName),
 	}
 }
 
