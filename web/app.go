@@ -40,10 +40,17 @@ type App struct {
 	IndexHandler   *index.Handler
 	GeoJSONHandler *geojson.Handler
 	MapsHandler    *maps.Handler
+
+	baseURL string
 }
 
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
+
+	if len(h.baseURL) > 0 && len(req.URL.Path) == 0 {
+		http.Redirect(res, req, h.baseURL+"/", http.StatusPermanentRedirect)
+		return
+	}
 
 	head, req.URL.Path = utils.ShiftPath(req.URL.Path)
 
@@ -72,6 +79,7 @@ func Start(listener net.Listener, db model.Database) {
 		IndexHandler:   index.NewHandler(),
 		GeoJSONHandler: geojson.NewHandler(db),
 		MapsHandler:    maps.NewHandler(base),
+		baseURL:        base,
 	}
 
 	http.Handle("/", http.StripPrefix(base, app))

@@ -21,8 +21,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/apex/log"
 	"github.com/bullettime/lora-mapper/daemon"
 	"github.com/bullettime/lora-mapper/database/influxdb"
@@ -36,8 +34,6 @@ var startCmd = &cobra.Command{
 	Short: "Start web server",
 	Long: `lora-mapper start will run the web server to view to coverage mappings`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("start called")
-
 		dbOptions := influxdb.InfluxOptions{
 			Server:    viper.GetString("influxdb.server.url"),
 			Username:  viper.GetString("influxdb.server.username"),

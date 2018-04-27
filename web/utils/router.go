@@ -25,6 +25,7 @@ package utils
 import (
 	"path"
 	"strings"
+	"net/http"
 )
 
 func ShiftPath(p string) (head, tail string) {
@@ -34,4 +35,8 @@ func ShiftPath(p string) (head, tail string) {
 		return p[1:], "/"
 	}
 	return p[1:i], p[i:]
+}
+
+func ResetPath(req *http.Request) {
+	req.URL.Path = req.RequestURI
 }

@@ -26,6 +26,7 @@ import (
 	"net/http"
 
 	"github.com/spf13/viper"
+	"github.com/bullettime/lora-mapper/web/utils"
 )
 
 type Handler struct {
@@ -50,7 +51,7 @@ func (h *Handler) Handle() http.Handler {
 		case "/":
 			http.NotFound(res, req)
 		default:
-			req.URL.Path = req.RequestURI
+			utils.ResetPath(req)
 			h.handleSubfiles().ServeHTTP(res, req)
 		}
 	})
