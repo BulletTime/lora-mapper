@@ -104,8 +104,8 @@ func (i *influxdb) Write(metrics []model.Metric) error {
 	return nil
 }
 
-func (i *influxdb) query(command string) ([]model.Metric, error) {
-	var metrics []model.Metric
+func (i *influxdb) Query(command string) ([][]model.Metric, error) {
+	var metrics [][]model.Metric
 
 	log.WithField("query", command).Info("[Influxdb] query")
 
@@ -120,57 +120,45 @@ func (i *influxdb) query(command string) ([]model.Metric, error) {
 	}
 
 	for _, result := range response.Results {
+		metrics = make([][]model.Metric, 0, len(result.Series))
+
 		for _, serie := range result.Series {
-			log.WithFields(log.Fields{
-				"name":    serie.Name,
-				"tags":    serie.Tags,
-				"values":  serie.Values[0],
-				"columns": serie.Columns,
-			}).Debugf("[Influxdb] query: %s", command)
+			serieMetrics := make([]model.Metric, 0, len(serie.Values))
 
-			t, err := time.Parse(time.RFC3339, serie.Values[0][0].(string))
-			if err != nil {
-				log.WithError(err).Warnf("[Influxdb] parsing time from serie: %v", serie)
-				continue
+			for _, value := range serie.Values {
+				//log.WithFields(log.Fields{
+				//	"name":    serie.Name,
+				//	"tags":    serie.Tags,
+				//	"values":  value,
+				//	"columns": serie.Columns,
+				//}).Debugf("[Influxdb] query: %s", command)
+
+				t, err := time.Parse(time.RFC3339, value[0].(string))
+				if err != nil {
+					log.WithError(err).Warnf("[Influxdb] parsing time from serie: %v", serie)
+					continue
+				}
+
+				fields := make(map[string]interface{})
+
+				for j := 1; j < len(serie.Columns); j++ {
+					fields[serie.Columns[j]] = value[j]
+				}
+
+				metric, err := model.NewMetric(serie.Name, serie.Tags, fields, t)
+				if err != nil {
+					log.WithError(err).Warnf("[Influxdb] could not create metric from serie: %v", serie)
+					continue
+				}
+
+				serieMetrics = append(serieMetrics, metric)
 			}
 
-			fields := make(map[string]interface{})
-
-			for i := 1; i < len(serie.Columns); i++ {
-				fields[serie.Columns[i]] = serie.Values[0][i]
-			}
-
-			metric, err := model.NewMetric(serie.Name, serie.Tags, fields, t)
-			if err != nil {
-				log.WithError(err).Warnf("[Influxdb] could not create metric from serie: %v", serie)
-				continue
-			}
-
-			metrics = append(metrics, metric)
+			metrics = append(metrics, serieMetrics)
 		}
 	}
 
 	return metrics, nil
-}
-
-func (i *influxdb) QueryMeasurement(measurement string) ([]model.Metric, error) {
-	command := fmt.Sprintf("select * from %s group by *", measurement)
-	return i.query(command)
-}
-
-func (i *influxdb) QueryMeasurementWithFilter(measurement string, filter string) ([]model.Metric, error) {
-	command := fmt.Sprintf("select * from %s where %s group by *", measurement, filter)
-	return i.query(command)
-}
-
-func (i *influxdb) QueryMeasurementWithMaxAge(measurement string, notOlderThan string) ([]model.Metric, error) {
-	command := fmt.Sprintf("select * from %s where time >= now() - %s group by *", measurement, notOlderThan)
-	return i.query(command)
-}
-
-func (i *influxdb) QueryMeasurementWithMaxAgeAndFilter(measurement string, notOlderThan string, filter string) ([]model.Metric, error) {
-	command := fmt.Sprintf("select * from %s where time >= now() - %s and %s group by *", measurement, notOlderThan, filter)
-	return i.query(command)
 }
 
 func (i *influxdb) HasMetric(metric model.Metric, t time.Time) bool {

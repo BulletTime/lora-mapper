@@ -29,10 +29,11 @@ import (
 type Database interface {
 	Connect() error
 	Write([]Metric) error
-	QueryMeasurement(string) ([]Metric, error)
-	QueryMeasurementWithFilter(string, string) ([]Metric, error)
-	QueryMeasurementWithMaxAge(string, string) ([]Metric, error)
-	QueryMeasurementWithMaxAgeAndFilter(string, string, string) ([]Metric, error)
+	Query(string) ([][]Metric, error)
+	//QueryMeasurementWithGroupBy(string, string) ([][]Metric, error)
+	//QueryMeasurementWithFilter(string, string) ([][]Metric, error)
+	//QueryMeasurementWithMaxAge(string, string) ([][]Metric, error)
+	//QueryMeasurementWithMaxAgeAndFilter(string, string, string) ([][]Metric, error)
 	HasMetric(Metric, time.Time) bool
 	Close() error
 }

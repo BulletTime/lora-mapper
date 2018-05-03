@@ -110,7 +110,7 @@ func (h *Handler) handleSF(sf string, params url.Values) http.Handler {
 
 func (h *Handler) handleAll(params url.Values) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSON(params.Get("callback"))
+		json, err := h.geoJSON.GetGeoJSONFromAllSF(params.Get("callback"))
 		if err != nil {
 			log.WithFields(log.Fields{
 				"parameters": params,

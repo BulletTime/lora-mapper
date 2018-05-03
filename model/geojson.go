@@ -25,10 +25,14 @@ package model
 import (
 	"fmt"
 	"strconv"
-	"strings"
-
 	"github.com/paulmach/go.geojson"
 	"github.com/pkg/errors"
+	"github.com/apex/log"
+)
+
+const (
+	InfluxSF = `select max("rssi") as "rssi" from (select mean("rssi") as "rssi", mean("snr") as "snr" from %s where data_rate='%s' group by latitude, longitude, gateway_id) group by latitude, longitude`
+	InfluxAllSF = `select distinct(data_rate) as "data_rate" from (select rssi, snr, data_rate from %s where rssi < 0 group by latitude, longitude) group by latitude, longitude`
 )
 
 type gjson struct {
@@ -38,10 +42,8 @@ type gjson struct {
 }
 
 type GeoJSON interface {
-	GetGeoJSON(string) (string, error)
 	GetGeoJSONFromSF(string, string) (string, error)
-	GetGeoJSONFromGateway(string, string) (string, error)
-	GetGeoJSONFromGatewayAndSF(string, string, string) (string, error)
+	GetGeoJSONFromAllSF(string) (string, error)
 }
 
 func NewGeoJSON(db Database, measurementName string) GeoJSON {
@@ -50,34 +52,6 @@ func NewGeoJSON(db Database, measurementName string) GeoJSON {
 		measurementName:   measurementName,
 		featureCollection: geojson.NewFeatureCollection(),
 	}
-}
-
-func (g *gjson) addPoints(metrics []Metric) error {
-	for _, metric := range metrics {
-		if !metric.HasTag("latitude") || !metric.HasTag("longitude") || !metric.HasField("rssi") {
-			return errors.New("invalid metric")
-		}
-
-		lat, err := strconv.ParseFloat(metric.Tags()["latitude"], 64)
-		if err != nil {
-			return errors.New("invalid latitude")
-		}
-		lon, err := strconv.ParseFloat(metric.Tags()["longitude"], 64)
-		if err != nil {
-			return errors.New("invalid longitude")
-		}
-		rssi := metric.Fields()["rssi"]
-		dataRate := metric.Tags()["data_rate"]
-		sf := strings.ToLower(dataRate[:len(dataRate)-5])
-
-		feature := geojson.NewPointFeature([]float64{lat, lon})
-		feature.SetProperty("rssi", rssi)
-		feature.SetProperty("sf", sf)
-
-		g.featureCollection.AddFeature(feature)
-	}
-
-	return nil
 }
 
 func (g *gjson) getJSON(callback string) (string, error) {
@@ -93,67 +67,102 @@ func (g *gjson) getJSON(callback string) (string, error) {
 	}
 }
 
-func (g *gjson) GetGeoJSON(callback string) (string, error) {
-	g.featureCollection = geojson.NewFeatureCollection()
-
-	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, "rssi != 0")
-	if err != nil {
-		return "", err
-	}
-
-	if err := g.addPoints(metrics); err != nil {
-		return "", err
-	}
-
-	return g.getJSON(callback)
-}
-
 func (g *gjson) GetGeoJSONFromSF(sf string, callback string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
-	filter := fmt.Sprintf("data_rate = '%s'", sf)
+	command := fmt.Sprintf(InfluxSF, g.measurementName, sf)
 
-	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
+	metrics, err := g.db.Query(command)
 	if err != nil {
 		return "", err
 	}
 
-	if err := g.addPoints(metrics); err != nil {
-		return "", err
+	for _, series := range metrics {
+		for _, metric := range series {
+			if !metric.HasTag("latitude") || !metric.HasTag("longitude") || !metric.HasField("rssi") {
+				log.WithField("metric", metric).Warn("invalid metric")
+				continue
+			}
+
+			lat, err := strconv.ParseFloat(metric.Tags()["latitude"], 64)
+			if err != nil {
+				log.WithField("latitude", metric.Tags()["latitude"]).Warn("invalid latitude")
+				continue
+			}
+			lon, err := strconv.ParseFloat(metric.Tags()["longitude"], 64)
+			if err != nil {
+				log.WithField("latitude", metric.Tags()["longitude"]).Warn("invalid longitude")
+				continue
+			}
+			rssi := metric.Fields()["rssi"]
+
+			feature := geojson.NewPointFeature([]float64{lat, lon})
+			feature.SetProperty("rssi", rssi)
+
+			g.featureCollection.AddFeature(feature)
+		}
 	}
 
 	return g.getJSON(callback)
 }
 
-func (g *gjson) GetGeoJSONFromGateway(gateway string, callback string) (string, error) {
+func (g *gjson) GetGeoJSONFromAllSF(callback string) (string, error) {
 	g.featureCollection = geojson.NewFeatureCollection()
 
-	filter := fmt.Sprintf("gateway_id = '%s'", gateway)
+	command := fmt.Sprintf(InfluxAllSF, g.measurementName)
 
-	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
+	metrics, err := g.db.Query(command)
 	if err != nil {
 		return "", err
 	}
 
-	if err := g.addPoints(metrics); err != nil {
-		return "", err
-	}
+	for _, series := range metrics {
+		var lat, lon float64
 
-	return g.getJSON(callback)
-}
+		sf := 12
 
-func (g *gjson) GetGeoJSONFromGatewayAndSF(gateway string, sf string, callback string) (string, error) {
-	g.featureCollection = geojson.NewFeatureCollection()
+		for _, metric := range series {
+			var err error
 
-	filter := fmt.Sprintf("gateway_id = '%s' and data_rate = '%s'", gateway, sf)
+			if !metric.HasTag("latitude") || !metric.HasTag("longitude") || !metric.HasField("data_rate") {
+				log.WithField("metric", metric).Warn("invalid metric")
+				continue
+			}
 
-	metrics, err := g.db.QueryMeasurementWithFilter(g.measurementName, filter)
-	if err != nil {
-		return "", err
-	}
+			if lat == 0 {
+				lat, err = strconv.ParseFloat(metric.Tags()["latitude"], 64)
+				if err != nil {
+					log.WithField("latitude", metric.Tags()["latitude"]).Warn("invalid latitude")
+					continue
+				}
+			}
 
-	if err := g.addPoints(metrics); err != nil {
-		return "", err
+			if lon == 0 {
+				lon, err = strconv.ParseFloat(metric.Tags()["longitude"], 64)
+				if err != nil {
+					log.WithField("latitude", metric.Tags()["longitude"]).Warn("invalid longitude")
+					continue
+				}
+			}
+
+			dr := metric.Fields()["data_rate"].(string)
+			i, err := strconv.Atoi(dr[2:len(dr)-5])
+			if err != nil {
+				log.WithField("data rate", metric.Fields()["data_rate"]).Warn("invalid data rate")
+				continue
+			}
+
+			if i < sf {
+				sf = i
+			}
+		}
+
+		if lat > 0 && lon > 0 {
+			feature := geojson.NewPointFeature([]float64{lat, lon})
+			feature.SetProperty("sf", fmt.Sprintf("sf%v", sf))
+
+			g.featureCollection.AddFeature(feature)
+		}
 	}
 
 	return g.getJSON(callback)
