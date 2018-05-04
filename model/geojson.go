@@ -32,7 +32,7 @@ import (
 
 const (
 	InfluxSF = `select max("rssi") as "rssi" from (select mean("rssi") as "rssi", mean("snr") as "snr" from %s where data_rate='%s' group by latitude, longitude, gateway_id) group by latitude, longitude`
-	InfluxAllSF = `select distinct(data_rate) as "data_rate" from (select rssi, snr, data_rate from %s where rssi < 0 group by latitude, longitude) group by latitude, longitude`
+	InfluxAllSF = `select distinct(data_rate) as "data_rate" from (select rssi, snr, data_rate from %s where rssi < 0  group by latitude, longitude) group by latitude, longitude`
 )
 
 type gjson struct {

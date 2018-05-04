@@ -59,16 +59,16 @@
             <td bgcolor="#0000ff"></td>
             <td>SF12</td>
         </tr>
-        <tr>
+        <!-- <tr>
             <td bgcolor="#808080"></td>
             <td>Error</td>
-        </tr>
+        </tr> -->
     </table>
 </div>
 <script>
     var map;
     function initMap() {
-        var gatewayHome = {lat: 51.001811, lng: 4.713596};
+        // var gatewayHome = {lat: 51.001811, lng: 4.713596};
         var gatewayKUL = {lat:50.862279, lng: 4.685495};
 
         map = new google.maps.Map(document.getElementById('map'), {
@@ -77,13 +77,13 @@
             // mapTypeId: 'hybrid'
         });
 
-        var markerHome = new google.maps.Marker({
-            position: gatewayHome,
-            map: map,
-            title: 'Gateway: 008000000000b88d',
-            label: 'G',
-            zIndex: 7,
-        });
+        // var markerHome = new google.maps.Marker({
+        //     position: gatewayHome,
+        //     map: map,
+        //     title: 'Gateway: 008000000000b88d',
+        //     label: 'G',
+        //     zIndex: 7,
+        // });
 
         var markerKUL = new google.maps.Marker({
             position: gatewayKUL,
@@ -106,57 +106,85 @@
     }
 
     function eqfeed_callback(results) {
-        for (var i = 0; i < results.features.length; i++) {
-            var coords = results.features[i].geometry.coordinates;
-            var latLng = new google.maps.LatLng(coords[0] + 0.00005, coords[1] + 0.00005);
-            var colorAndIndex = getColorAndIndex(results.features[i].properties.sf);
-            var circle = new google.maps.Circle({
-                center: latLng,
-                fillColor: colorAndIndex[0],
-                fillOpacity: 1,
-                map: map,
-                radius: 7,
-                strokeColor: colorAndIndex[0],
-                strokeOpacity: 0.4,
-                strokeWeight: 100,
-                zIndex: colorAndIndex[1],
-            });
-        }
+      var nbOfHeatMaps = 6;
+      var heatmapData = create2DArray(nbOfHeatMaps);
+
+      for (var i = 0; i < results.features.length; i++) {
+          var coords = results.features[i].geometry.coordinates;
+          var latLng = new google.maps.LatLng(coords[0] + 0.00005, coords[1] + 0.00005);
+          var sf = results.features[i].properties.sf;
+
+          switch(sf) {
+              case "sf7":
+                  heatmapData[0].push(latLng);
+                  break;
+              case "sf8":
+                  heatmapData[1].push(latLng);
+                  break;
+              case "sf9":
+                  heatmapData[2].push(latLng);
+                  break;
+              case "sf10":
+                  heatmapData[3].push(latLng);
+                  break;
+              case "sf11":
+                  heatmapData[4].push(latLng);
+                  break;
+              case "sf12":
+                  heatmapData[5].push(latLng);
+                  break;
+              default:
+          }
+      }
+
+      var gradients = [
+        [
+          'rgba(255, 0, 0, 0)',
+          'rgba(255, 0, 0, 1)'
+        ],
+        [
+          'rgba(255, 128, 0, 0)',
+          'rgba(255, 128, 0, 1)'
+        ],
+        [
+          'rgba(255, 255, 0, 0)',
+          'rgba(255, 255, 0, 1)'
+        ],
+        [
+          'rgba(0, 255, 0, 0)',
+          'rgba(0, 255, 0, 1)'
+        ],
+        [
+          'rgba(0, 255, 255, 0)',
+          'rgba(0, 255, 255, 1)'
+        ],
+        [
+          'rgba(0, 0, 255, 0)',
+          'rgba(0, 0, 255, 1)'
+        ]
+      ];
+
+      for (var i=0;i<nbOfHeatMaps;i++) {
+        var heatmap = new google.maps.visualization.HeatmapLayer({
+          data: heatmapData[i],
+          dissipating: true,
+          gradient: gradients[i],
+          maxIntensity: 1,
+          opacity: 0.5,
+          radius: 35,
+          map: map
+        });
+      }
     }
 
-    function getColorAndIndex(sf) {
-        var color;
-        var index;
-        switch(sf) {
-            case "sf7":
-                color = "#ff0000";
-                index = 6;
-                break;
-            case "sf8":
-                color = "#ff8000";
-                index = 5;
-                break;
-            case "sf9":
-                color = "#ffff00";
-                index = 4;
-                break;
-            case "sf10":
-                color = "#40ff00";
-                index = 3;
-                break;
-            case "sf11":
-                color = "#00ffff";
-                index = 2;
-                break;
-            case "sf12":
-                color = "#0000ff";
-                index = 1;
-                break;
-            default:
-                color = "#808080";
-                index = 0;
-        }
-        return [color, index];
+    function create2DArray(rows) {
+      var arr = [];
+
+      for (var i=0;i<rows;i++) {
+         arr[i] = [];
+      }
+
+      return arr;
     }
 </script>
 <script async defer
