@@ -25,14 +25,15 @@ package model
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/apex/log"
 	"github.com/paulmach/go.geojson"
 	"github.com/pkg/errors"
-	"github.com/apex/log"
 )
 
 const (
-	InfluxSF = `select max("rssi") as "rssi" from (select mean("rssi") as "rssi", mean("snr") as "snr" from %s where data_rate='%s' group by latitude, longitude, gateway_id) group by latitude, longitude`
-	InfluxAllSF = `select distinct(data_rate) as "data_rate" from (select rssi, snr, data_rate from %s where rssi < 0  group by latitude, longitude) group by latitude, longitude`
+	InfluxSF    = `select max("rssi") as "rssi" from (select mean("rssi") as "rssi", mean("snr") as "snr" from %s where data_rate='%s' group by latitude, longitude, gateway_id) group by latitude, longitude`
+	InfluxAllSF = `select distinct(data_rate) as "data_rate" from (select rssi, snr, data_rate from %s where rssi < 0 group by latitude, longitude) group by latitude, longitude`
 )
 
 type gjson struct {
@@ -146,7 +147,7 @@ func (g *gjson) GetGeoJSONFromAllSF(callback string) (string, error) {
 			}
 
 			dr := metric.Fields()["data_rate"].(string)
-			i, err := strconv.Atoi(dr[2:len(dr)-5])
+			i, err := strconv.Atoi(dr[2 : len(dr)-5])
 			if err != nil {
 				log.WithField("data rate", metric.Fields()["data_rate"]).Warn("invalid data rate")
 				continue

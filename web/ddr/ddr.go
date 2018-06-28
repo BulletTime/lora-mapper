@@ -20,12 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package geojson
+package ddr
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
-	"net/url"
+	"strconv"
 
 	"github.com/apex/log"
 	"github.com/bullettime/lora-mapper/model"
@@ -34,8 +34,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+type response struct {
+	Datarate string `json:"datarate"`
+}
+
 type Handler struct {
-	geoJSON model.GeoJSON
+	ddr model.DDR
 }
 
 func NewHandler(db model.Database) *Handler {
@@ -45,8 +49,14 @@ func NewHandler(db model.Database) *Handler {
 		metricName = csv.LocationData
 	}
 
+	radius := viper.GetFloat64("ddr.radius")
+
+	if radius <= 0 {
+		radius = 100.0
+	}
+
 	return &Handler{
-		geoJSON: model.NewGeoJSON(db, metricName),
+		ddr: model.NewDDR(db, metricName, radius),
 	}
 }
 
@@ -68,59 +78,56 @@ func (h *Handler) handleGet() http.Handler {
 		head, req.URL.Path = utils.ShiftPath(req.URL.Path)
 
 		switch head {
-		case "all":
-			h.handleAll(req.Form).ServeHTTP(res, req)
-		case "sf7":
-			h.handleSF("SF7BW125", req.Form).ServeHTTP(res, req)
-		case "sf8":
-			h.handleSF("SF8BW125", req.Form).ServeHTTP(res, req)
-		case "sf9":
-			h.handleSF("SF9BW125", req.Form).ServeHTTP(res, req)
-		case "sf10":
-			h.handleSF("SF10BW125", req.Form).ServeHTTP(res, req)
-		case "sf11":
-			h.handleSF("SF11BW125", req.Form).ServeHTTP(res, req)
-		case "sf12":
-			h.handleSF("SF12BW125", req.Form).ServeHTTP(res, req)
+		case "q":
+			h.handleDDR().ServeHTTP(res, req)
 		default:
 			http.NotFound(res, req)
 		}
 	})
 }
 
-func (h *Handler) handleSF(sf string, params url.Values) http.Handler {
+func (h *Handler) handleDDR() http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSONFromSF(sf, params.Get("callback"))
+		lat, err := strconv.ParseFloat(req.FormValue("lat"), 64)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"sf":         sf,
-				"parameters": params,
-			}).WithError(err).Error("handle sf")
-			http.NotFound(res, req)
+			log.WithError(err).WithFields(log.Fields{
+				"lat": req.FormValue("lat"),
+			}).Error("handleDDR")
+			http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
 		}
 
-		h.writeJSON(json).ServeHTTP(res, req)
-	})
-}
-
-func (h *Handler) handleAll(params url.Values) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		json, err := h.geoJSON.GetGeoJSONFromAllSF(params.Get("callback"))
+		lon, err := strconv.ParseFloat(req.FormValue("lon"), 64)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"parameters": params,
-			}).WithError(err).Error("handle all")
-			http.NotFound(res, req)
+			log.WithError(err).WithFields(log.Fields{
+				"lon": req.FormValue("lon"),
+			}).Error("handleDDR")
+			http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
 		}
 
-		h.writeJSON(json).ServeHTTP(res, req)
-	})
-}
+		location := model.LatLon{Latitude: lat, Longitude: lon}
 
-func (h *Handler) writeJSON(json string) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		sf, err := h.ddr.GetSF(location)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"lat": lat,
+				"lon": lon,
+			}).Error("handleDDR")
+			http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		js, err := json.Marshal(response{sf})
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"response": response{sf},
+			}).Error("handleDDR")
+			http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
 		res.Header().Set("Content-Type", "application/json")
-		res.WriteHeader(http.StatusOK)
-		fmt.Fprint(res, json)
+		res.Write(js)
 	})
 }

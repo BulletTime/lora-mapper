@@ -23,9 +23,9 @@
 package utils
 
 import (
+	"net/http"
 	"path"
 	"strings"
-	"net/http"
 )
 
 func ShiftPath(p string) (head, tail string) {

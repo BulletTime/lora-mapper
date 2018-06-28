@@ -20,54 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package maps
+package utils
 
-import (
-	"net/http"
+import "testing"
 
-	"github.com/bullettime/lora-mapper/web/utils"
-	"github.com/spf13/viper"
-)
-
-type Handler struct {
-	BaseURL string
-	Assets  string
-}
-
-func NewHandler(base string) *Handler {
-	assets := viper.GetString("web.Assets")
-	if assets == "" {
-		assets = "."
-	}
-	return &Handler{
-		BaseURL: base,
-		Assets:  assets,
-	}
-}
-
-func (h *Handler) Handle() http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		switch req.Method {
-		case "GET":
-			h.handleGet().ServeHTTP(res, req)
-		default:
-			http.Error(res, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		}
-	})
-}
-
-func (h *Handler) handleGet() http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		switch req.URL.Path {
-		case "/":
-			http.NotFound(res, req)
-		default:
-			utils.ResetPath(req)
-			h.handleSubfiles().ServeHTTP(res, req)
-		}
-	})
-}
-
-func (h *Handler) handleSubfiles() http.Handler {
-	return http.StripPrefix(h.BaseURL, http.FileServer(http.Dir(h.Assets)))
+func TestShiftPath(t *testing.T) {
+	head, tail := ShiftPath("ddr/q?lat=0&lon=0/blablabla")
+	t.Logf("\nhead: %s\ntail: %s", head, tail)
 }

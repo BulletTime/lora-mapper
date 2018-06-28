@@ -27,8 +27,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/apex/log"
 	"github.com/bullettime/lora-mapper/model"
 	"github.com/bullettime/lora-mapper/web/adapter"
+	"github.com/bullettime/lora-mapper/web/ddr"
 	"github.com/bullettime/lora-mapper/web/geojson"
 	"github.com/bullettime/lora-mapper/web/index"
 	"github.com/bullettime/lora-mapper/web/maps"
@@ -40,6 +42,7 @@ type App struct {
 	IndexHandler   *index.Handler
 	GeoJSONHandler *geojson.Handler
 	MapsHandler    *maps.Handler
+	DDRHandler     *ddr.Handler
 
 	baseURL string
 }
@@ -52,6 +55,11 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	err := req.ParseForm()
+	if err != nil {
+		log.WithError(err).Warn("[Web] could not parse form")
+	}
+
 	head, req.URL.Path = utils.ShiftPath(req.URL.Path)
 
 	switch head {
@@ -61,6 +69,8 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		adapter.Adapt(h.GeoJSONHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
 	case "maps":
 		adapter.Adapt(h.MapsHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
+	case "ddr":
+		adapter.Adapt(h.DDRHandler.Handle(), adapter.Log()).ServeHTTP(res, req)
 	default:
 		http.NotFound(res, req)
 	}
@@ -79,6 +89,7 @@ func Start(listener net.Listener, db model.Database) {
 		IndexHandler:   index.NewHandler(),
 		GeoJSONHandler: geojson.NewHandler(db),
 		MapsHandler:    maps.NewHandler(base),
+		DDRHandler:     ddr.NewHandler(db),
 		baseURL:        base,
 	}
 
