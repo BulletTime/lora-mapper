@@ -68,7 +68,9 @@ func NewDDR(db Database, measurementName string, minRadius float64) DDR {
 }
 
 func (d *ddr) GetSF(ll LatLon) (string, error) {
-	var datarates = make(map[LatLon]int)
+	var datarates = make(map[float64]int)
+
+	minDistance := d.minRadius + 1
 
 	top, bottom := d.getBoundsTopBottom(ll)
 	latitude := getRegex(bottom, top)
@@ -124,27 +126,54 @@ func (d *ddr) GetSF(ll LatLon) (string, error) {
 			if i < sf {
 				sf = i
 			}
+
+			//if ll.getDistance(LatLon{Latitude: lat, Longitude: lon}) < distance {
+			//	sf = i
+			//}
 		}
 
 		if lat > 0 && lon > 0 {
 			location := LatLon{lat, lon}
-			datarates[location] = sf
+			distance := ll.getDistance(location)
+			datarates[distance] = sf
+			if distance < minDistance {
+				minDistance = distance
+			}
 		}
 	}
 
 	bestDatarate := 12
 
-	for _, dr := range datarates {
-		if dr < bestDatarate {
-			bestDatarate = dr
-		}
+	if minDistance < d.minRadius + 1 {
+		bestDatarate = datarates[minDistance]
 	}
+
+	//for _, dr := range datarates {
+	//	if dr < bestDatarate {
+	//		bestDatarate = dr
+	//	}
+	//}
 
 	return fmt.Sprintf("SF%dBW125", bestDatarate), nil
 }
 
 func radians(degree float64) float64 {
 	return degree * math.Pi / 180
+}
+
+func (x LatLon) getDistance(y LatLon) float64 {
+	lat1 := radians(x.Latitude)
+	lat2 := radians(y.Latitude)
+	lon1 := radians(x.Longitude)
+	lon2 := radians(y.Longitude)
+
+	dlat := lat2 - lat1
+	dlon := lon2 - lon1
+
+	a := math.Pow(math.Sin(dlat/2), 2) + math.Cos(lat1)*math.Cos(lat2)*math.Pow(math.Sin(dlon/2), 2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return REarth * c
 }
 
 func (d *ddr) getBoundsTopBottom(ll LatLon) (top float64, bottom float64) {
