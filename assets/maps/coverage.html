@@ -68,30 +68,30 @@
 <script>
     var map;
     function initMap() {
-        // var gatewayHome = {lat: 51.001811, lng: 4.713596};
-        var gatewayKUL = {lat:50.862279, lng: 4.685495};
+        var gatewayHome = {lat: 51.00178534, lng: 4.71346780};
+        // var gatewayKUL = {lat:50.862279, lng: 4.685495};
 
         map = new google.maps.Map(document.getElementById('map'), {
-            zoom: 16,
-            center: gatewayKUL,
-            // mapTypeId: 'hybrid'
+            zoom: 15,
+            center: gatewayHome,
+            mapTypeId: 'hybrid'
         });
 
-        // var markerHome = new google.maps.Marker({
-        //     position: gatewayHome,
-        //     map: map,
-        //     title: 'Gateway: 008000000000b88d',
-        //     label: 'G',
-        //     zIndex: 7,
-        // });
-
-        var markerKUL = new google.maps.Marker({
-            position: gatewayKUL,
+        var markerHome = new google.maps.Marker({
+            position: gatewayHome,
             map: map,
-            title: 'Gateway: e4a7a0ffffd4bbaa',
+            title: 'Gateway: 008000000000b88d',
             label: 'G',
             zIndex: 7,
         });
+
+        // var markerKUL = new google.maps.Marker({
+        //     position: gatewayKUL,
+        //     map: map,
+        //     title: 'Gateway: e4a7a0ffffd4bbaa',
+        //     label: 'G',
+        //    zIndex: 7,
+        // });
 
         var legend = document.getElementById('legend');
         map.controls[google.maps.ControlPosition.LEFT_BOTTOM].push(legend);
@@ -164,14 +164,14 @@
         ]
       ];
 
-      for (var i=0;i<nbOfHeatMaps;i++) {
+      for (var i=nbOfHeatMaps-1;i>=0;i--) {
         var heatmap = new google.maps.visualization.HeatmapLayer({
           data: heatmapData[i],
           dissipating: true,
           gradient: gradients[i],
           maxIntensity: 1,
-          opacity: 0.5,
-          radius: 35,
+          opacity: 0.8 - i * 0.06,
+          radius: 35, //0.0015 without dissipating
           map: map
         });
       }

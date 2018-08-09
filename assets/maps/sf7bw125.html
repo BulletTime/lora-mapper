@@ -37,7 +37,7 @@
         </tr>
         <tr>
           <td bgcolor="#ff0000"></td>
-          <td>]&infin;; -100[</td>
+          <td>]0; -100[</td>
         </tr>
         <tr>
           <td bgcolor="#ff8000"></td>
@@ -57,41 +57,37 @@
         </tr>
         <tr>
           <td bgcolor="#0000ff"></td>
-          <td>[-120;-&infin;[</td>
-        </tr>
-        <tr>
-          <td bgcolor="#808080"></td>
-          <td>Packet lost</td>
+          <td>[-120;-150[</td>
         </tr>
       </table>
     </div>
     <script>
       var map;
       function initMap() {
-        // var gatewayHome = {lat: 51.001811, lng: 4.713596};
-        var gatewayKUL = {lat:50.862279, lng: 4.685495};
+        var gatewayHome = {lat: 51.00178534, lng: 4.71346780};
+        // var gatewayKUL = {lat:50.862279, lng: 4.685495};
 
         map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 16,
-          center: gatewayKUL,
-          // mapTypeId: 'hybrid'
+            zoom: 15,
+            center: gatewayHome,
+            mapTypeId: 'hybrid'
         });
 
-        // var markerHome = new google.maps.Marker({
-        //   position: gatewayHome,
-        //   map: map,
-        //   title: 'Gateway: 008000000000b88d',
-        //   label: 'G',
-        //   zIndex: 7,
+        var markerHome = new google.maps.Marker({
+            position: gatewayHome,
+            map: map,
+            title: 'Gateway: 008000000000b88d',
+            label: 'G',
+            zIndex: 7,
+        });
+
+        // var markerKUL = new google.maps.Marker({
+        //     position: gatewayKUL,
+        //     map: map,
+        //     title: 'Gateway: e4a7a0ffffd4bbaa',
+        //     label: 'G',
+        //    zIndex: 7,
         // });
-
-        var markerKUL = new google.maps.Marker({
-          position: gatewayKUL,
-          map: map,
-          title: 'Gateway: e4a7a0ffffd4bbaa',
-          label: 'G',
-          zIndex: 7,
-        });
 
         var legend = document.getElementById('legend');
         map.controls[google.maps.ControlPosition.LEFT_BOTTOM].push(legend);
@@ -106,16 +102,14 @@
       }
 
       function eqfeed_callback(results) {
-        var heatmapData = create2DArray(7);
+        var heatmapData = create2DArray(6);
         
         for (var i = 0; i < results.features.length; i++) {
           var coords = results.features[i].geometry.coordinates;
           var latLng = new google.maps.LatLng(coords[0] + 0.00005, coords[1] + 0.00005);
           var rssi = results.features[i].properties.rssi;
 
-          if (rssi == 0) {
-            heatmapData[6].push(latLng);
-          } else if (-50 > rssi && rssi > -100) {
+          if (0 > rssi && rssi > -100) {
             heatmapData[0].push(latLng);
           } else if (-100 >= rssi && rssi > -105) {
             heatmapData[1].push(latLng);
@@ -155,20 +149,16 @@
             'rgba(0, 0, 255, 0)',
             'rgba(0, 0, 255, 1)'
           ],
-          [
-            'rgba(128, 128, 128, 0)',
-            'rgba(128, 128, 128, 1)'
-          ]
         ];
 
-        for (var i=0;i<7;i++) {
+        for (var i=5;i>=0;i--) {
           var heatmap = new google.maps.visualization.HeatmapLayer({
             data: heatmapData[i],
             dissipating: true,
             gradient: gradients[i],
             maxIntensity: 1,
-            opacity: 0.5,
-            radius: i == 7 ? 10 : 35,
+            opacity: 0.8 - i * 0.06,
+            radius: 35,
             map: map
           });
         }
