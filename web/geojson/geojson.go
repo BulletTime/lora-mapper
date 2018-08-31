@@ -97,6 +97,7 @@ func (h *Handler) handleSF(sf string, params url.Values) http.Handler {
 				"parameters": params,
 			}).WithError(err).Error("handle sf")
 			http.NotFound(res, req)
+			return
 		}
 
 		h.writeJSON(json).ServeHTTP(res, req)
@@ -111,6 +112,7 @@ func (h *Handler) handleAll(params url.Values) http.Handler {
 				"parameters": params,
 			}).WithError(err).Error("handle all")
 			http.NotFound(res, req)
+			return
 		}
 
 		h.writeJSON(json).ServeHTTP(res, req)
